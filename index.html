@@ -1,536 +1,1828 @@
-# Stroke app v7
-html = r"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stroke Code Assistant — v7</title>
+  <title>Stroke Code Assistant v8 — Teaching & Live Mode</title>
   <style>
-    :root{--brand:#7b1fa2;--accent:#1976d2;--ok:#2e7d32;--warn:#f57c00;--danger:#d32f2f;--bg:#f5f5f5;--card:#ffffff;--muted:#6b7280}
+    :root{
+      --brand:#5e35b1; --brand-dark:#4527a0; --brand-light:#ede7f6;
+      --live:#1565c0; --sim:#6a1b9a;
+      --ok:#2e7d32; --okbg:#e8f5e9;
+      --warn:#ef6c00; --warnbg:#fff3e0;
+      --danger:#c62828; --dangerbg:#ffebee;
+      --info:#0277bd; --infobg:#e1f5fe;
+      --bg:#f4f5f7; --card:#ffffff; --muted:#5f6b7a; --line:#d8dee6;
+    }
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif;background:var(--bg);color:#111;line-height:1.5}
-    .container{max-width:960px;margin:88px auto 120px;padding:12px}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif;background:var(--bg);color:#101828;line-height:1.5}
+    .container{max-width:1040px;margin:0 auto;padding:12px;padding-bottom:140px}
 
-    header{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--brand);color:#fff;border-bottom:1px solid rgba(0,0,0,.15)}
-    .head-inner{max-width:960px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center}
-    header h1{font-size:20px;font-weight:800;margin-right:6px;white-space:nowrap}
-    .timer{font-variant-numeric:tabular-nums;font-size:18px;font-weight:800;background:rgba(255,255,255,.18);padding:6px 10px;border-radius:999px}
-    .btn{border:none;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+    header{position:sticky;top:0;z-index:50;background:var(--brand);color:#fff}
+    body.sim-mode header{background:var(--sim)}
+    .head-inner{max-width:1040px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    header h1{font-size:18px;font-weight:800;letter-spacing:.3px}
+    .mode-pill{display:inline-flex;background:rgba(255,255,255,.18);border-radius:999px;padding:2px;margin-left:4px}
+    .mode-pill button{border:none;background:transparent;color:#fff;font-weight:800;padding:6px 12px;border-radius:999px;cursor:pointer;font-size:13px}
+    .mode-pill button.active{background:#fff;color:var(--brand)}
+    body.sim-mode .mode-pill button.active{color:var(--sim)}
+    .timer{font-variant-numeric:tabular-nums;font-size:18px;font-weight:800;background:rgba(255,255,255,.18);padding:6px 12px;border-radius:999px;margin-left:auto}
+    .btn{border:none;border-radius:8px;padding:7px 12px;font-weight:700;cursor:pointer;font-size:13px}
     .btn.ghost{background:rgba(255,255,255,.18);color:#fff}
-    .btn.danger{background:#c62828;color:#fff}
-    .btn.primary{background:#1565c0;color:#fff}
-    .spacer{flex:1}
+    .btn.ghost:hover{background:rgba(255,255,255,.28)}
+    .btn.danger{background:#b71c1c;color:#fff}
+    .btn.primary{background:var(--live);color:#fff}
+    body.sim-mode .btn.primary{background:var(--sim)}
+    .btn.outline{background:#fff;border:1px solid var(--line);color:#101828}
 
-    .tabs{display:flex;gap:6px;margin:10px 0}
-    .tab{flex:1;padding:12px 10px;border:none;border-radius:10px 10px 0 0;background:#eaeef3;font-size:15px;font-weight:800;cursor:pointer}
-    .tab[aria-selected="true"]{background:var(--accent);color:#fff}
-    .tab-content{display:none;background:var(--card);border-radius:0 10px 10px 10px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px}
-    .tab-content.active{display:block}
+    .hipaa{background:#fff3cd;color:#7c4a03;border-bottom:1px solid #f1c875;padding:8px 12px;text-align:center;font-size:13px;font-weight:600}
+    .hipaa b{color:#5b3504}
 
-    h3{font-size:18px;margin:6px 0 10px}
-    .block{background:#f7f8fa;padding:12px;border-radius:10px;margin-bottom:10px}
-    .inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .muted{color:var(--muted);font-size:14px}
-    .input{padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:16px}
-    .input.small{width:110px}
-    .input.medium{width:160px}
-    .input.large{width:200px}
+    .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 0;border-bottom:2px solid var(--line)}
+    .tab{padding:10px 14px;border:none;background:transparent;font-weight:700;cursor:pointer;color:var(--muted);font-size:14px;border-bottom:3px solid transparent;border-radius:0;margin-bottom:-2px}
+    .tab[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--brand)}
+    body.sim-mode .tab[aria-selected="true"]{color:var(--sim);border-bottom-color:var(--sim)}
+    .tab .step-num{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--line);color:#fff;font-size:11px;line-height:18px;text-align:center;margin-right:6px;font-weight:800}
+    .tab[aria-selected="true"] .step-num{background:var(--brand)}
+    body.sim-mode .tab[aria-selected="true"] .step-num{background:var(--sim)}
 
-    .seg{display:inline-flex;border:1px solid #d1d5db;border-radius:10px;overflow:hidden}
-    .seg button{padding:8px 12px;border:none;background:#fff;cursor:pointer;font-weight:800}
-    .seg button.active{background:#eef6ff;color:var(--accent)}
+    .panel{display:none;background:var(--card);border-radius:0 0 12px 12px;border:1px solid var(--line);border-top:none;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .panel.active{display:block}
 
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800}
-    .badge.ok{background:#e8f5e9;color:var(--ok);border:1px solid #c7e6cc}
-    .badge.warn{background:#fff3cd;color:var(--warn);border:1px solid #ffe08a}
-    .badge.danger{background:#ffebee;color:var(--danger);border:1px solid #ffc2c2}
-    .badge.info{background:#e3f2fd;color:var(--accent);border:1px solid #b6dbff}
+    h2{font-size:20px;font-weight:800;margin-bottom:6px;color:#101828}
+    h3{font-size:16px;font-weight:800;margin:14px 0 8px;color:#101828}
+    h4{font-size:14px;font-weight:700;margin:10px 0 4px;color:var(--brand-dark)}
+    p,li{font-size:14px}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:12px}
 
-    .nihss-item{background:#f7f8fa;padding:12px;border-radius:10px;margin-bottom:12px}
-    .nihss-item h4{color:var(--accent);margin-bottom:8px}
-    .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{min-width:52px;height:52px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;border:1px solid #cbd5e1;background:#fff;font-weight:800;cursor:pointer;user-select:none}
-    .chip:focus{outline:3px solid #90caf9;outline-offset:2px}
-    .chip.selected{outline:3px solid var(--brand);outline-offset:0}
-    .score-display{position:fixed;bottom:16px;right:16px;background:var(--brand);color:#fff;padding:12px 18px;border-radius:999px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+    .card{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+    .card.tight{padding:8px 12px}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .row.between{justify-content:space-between}
+    .row.tight{gap:6px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 
-    #handoff-text{width:100%;min-height:220px;border:1px solid #d1d5db;border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    .banner{padding:10px 12px;border-radius:8px;background:#e3f2fd;margin-top:10px;border:1px solid #90caf9;color:#0d47a1;font-weight:800}
+    .input,select.input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
+    .input.sm{width:90px}
+    .input.md{width:140px}
 
-    /* NEW: Compact timer buttons on small screens (emoji labels) */
-    @media (max-width: 420px) {
-      #startTimer, #stopTimer, #resetTimer {
-        font-size: 0;         /* hide the original text */
-        padding: 6px 8px;     /* compact buttons */
-      }
-      #startTimer::after { content: "▶︎"; font-size: 16px; }
-      #stopTimer::after  { content: "⏸︎"; font-size: 16px; }
-      #resetTimer::after { content: "↺"; font-size: 16px; }
+    .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .seg button{padding:7px 12px;border:none;background:#fff;cursor:pointer;font-weight:700;font-size:13px;color:#374151}
+    .seg button.active{background:var(--brand-light);color:var(--brand-dark)}
+    .seg button:hover{background:#f3f4f6}
+    .seg button.active:hover{background:var(--brand-light)}
+
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid transparent}
+    .badge.ok{background:var(--okbg);color:var(--ok);border-color:#a5d6a7}
+    .badge.warn{background:var(--warnbg);color:var(--warn);border-color:#ffcc80}
+    .badge.danger{background:var(--dangerbg);color:var(--danger);border-color:#ef9a9a}
+    .badge.info{background:var(--infobg);color:var(--info);border-color:#81d4fa}
+    .badge.neutral{background:#eceff1;color:#455a64;border-color:#cfd8dc}
+
+    .alert{padding:10px 12px;border-radius:8px;font-size:14px;margin:10px 0;border-left:4px solid}
+    .alert.info{background:var(--infobg);border-left-color:var(--info);color:#01579b}
+    .alert.ok{background:var(--okbg);border-left-color:var(--ok);color:#1b5e20}
+    .alert.warn{background:var(--warnbg);border-left-color:var(--warn);color:#7c4a03}
+    .alert.danger{background:var(--dangerbg);border-left-color:var(--danger);color:#7f1d1d}
+
+    /* Teaching cards: collapsed in live, expanded in sim */
+    .teach{margin-top:8px;border:1px dashed #c7b8e6;background:#faf7ff;border-radius:8px;overflow:hidden}
+    .teach-head{padding:8px 12px;font-size:13px;color:var(--brand-dark);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;background:#f3edff}
+    .teach-head::before{content:"📘";font-size:14px}
+    .teach-body{padding:10px 12px;font-size:13px;color:#3b2f5e;display:none;background:#faf7ff;border-top:1px solid #e0d4f7}
+    .teach-body p{margin:4px 0;font-size:13px}
+    .teach.open .teach-body{display:block}
+    .teach-head .toggle::after{content:"▾";margin-left:auto}
+    .teach.open .teach-head .toggle::after{content:"▴"}
+    body.sim-mode .teach{background:#fff;border-color:#b39ddb}
+    body.sim-mode .teach .teach-body{display:block}
+    body.sim-mode .teach .teach-head{cursor:default}
+    body.sim-mode .teach .toggle{display:none}
+
+    /* NIHSS chips */
+    .nihss-item{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+    .nihss-item h4{color:var(--brand-dark);margin:0 0 6px;font-size:13px}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{min-width:42px;height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:800;cursor:pointer;font-size:14px;color:#374151}
+    .chip:hover{background:#f3f4f6}
+    .chip.selected{background:var(--brand);color:#fff;border-color:var(--brand)}
+    body.sim-mode .chip.selected{background:var(--sim);border-color:var(--sim)}
+    .chip.cortical{border-color:#ffb74d}
+    .chip.cortical.selected{background:#f57c00;border-color:#f57c00}
+
+    .score-pill{position:fixed;bottom:14px;right:14px;background:var(--brand);color:#fff;padding:10px 18px;border-radius:999px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.2);font-size:14px;z-index:60}
+    body.sim-mode .score-pill{background:var(--sim)}
+
+    /* Sim feedback panel */
+    #sim-feedback{position:fixed;right:14px;bottom:64px;width:320px;max-width:calc(100vw - 28px);background:#fff;border:2px solid var(--sim);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:55;display:none;overflow:hidden}
+    #sim-feedback.show{display:block}
+    #sim-feedback header{position:static;background:var(--sim);color:#fff;padding:8px 12px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+    #sim-feedback .body{padding:12px;font-size:13px;max-height:50vh;overflow:auto}
+    #sim-feedback .body p{margin:4px 0}
+    #sim-feedback .close{background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+
+    /* Sim case card */
+    .case-card{background:#f3edff;border:1px solid #b39ddb;border-radius:10px;padding:12px;margin-bottom:12px}
+    .case-card h4{color:var(--sim);margin-bottom:4px}
+    .case-card .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+    .case-card .vignette{font-size:13px;color:#3b2f5e;background:#fff;padding:10px;border-radius:8px;margin-top:6px;border:1px solid #d1c4e9}
+
+    /* Drill cards */
+    .drill-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;transition:transform .1s}
+    .drill-card:hover{transform:translateY(-1px);border-color:var(--brand)}
+    .drill-card h4{margin:0 0 4px}
+    .drill-card .muted{font-size:12px}
+
+    .quiz-prompt{font-size:15px;background:#f3edff;padding:14px;border-radius:10px;border:1px solid #b39ddb;margin-bottom:10px}
+    .quiz-options{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+    .quiz-options button{text-align:left;padding:10px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-size:14px}
+    .quiz-options button:hover{border-color:var(--brand);background:#faf7ff}
+    .quiz-options button.correct{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+    .quiz-options button.wrong{border-color:var(--danger);background:var(--dangerbg);color:var(--danger)}
+    .quiz-explain{margin-top:8px;padding:10px;background:#fafbfc;border-radius:8px;font-size:13px;border-left:3px solid var(--brand)}
+
+    .scorecard{background:#fff;border:2px solid var(--sim);border-radius:12px;padding:18px;margin-top:12px}
+    .scorecard h3{color:var(--sim);margin-top:0}
+    .sc-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dotted var(--line);font-size:14px}
+    .sc-row:last-child{border-bottom:none}
+    .sc-row.correct{color:var(--ok)}
+    .sc-row.wrong{color:var(--danger)}
+
+    .pathway-banner{padding:12px;border-radius:10px;font-weight:800;font-size:15px;margin:10px 0;border-left:6px solid}
+    .pathway-banner.tnk{background:#e3f2fd;border-left-color:#1565c0;color:#0d47a1}
+    .pathway-banner.mt{background:#e8f5e9;border-left-color:#2e7d32;color:#1b5e20}
+    .pathway-banner.both{background:#fff3e0;border-left-color:#ef6c00;color:#7c4a03}
+    .pathway-banner.ich{background:#ffebee;border-left-color:#c62828;color:#7f1d1d}
+    .pathway-banner.mimic{background:#eceff1;border-left-color:#546e7a;color:#263238}
+    .pathway-banner.dapt{background:#fff8e1;border-left-color:#f9a825;color:#6c4a04}
+
+    textarea.note{width:100%;min-height:140px;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+    .copy-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+
+    .pill{display:inline-block;padding:2px 8px;background:#eceff1;color:#37474f;border-radius:999px;font-size:11px;font-weight:700;margin-left:6px}
+
+    details summary{cursor:pointer;font-weight:700;color:var(--brand-dark);padding:6px 0}
+    details[open] summary{margin-bottom:6px}
+
+    @media (max-width:600px){
+      .head-inner{padding:8px}
+      header h1{font-size:15px}
+      .tab{padding:8px 10px;font-size:13px}
+      .timer{font-size:15px;padding:5px 10px}
+      .container{padding:8px}
+      #sim-feedback{width:calc(100vw - 16px);right:8px;bottom:60px}
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="head-inner">
-      <h1>STROKE CODE</h1>
-      <div class="timer" id="timer" aria-live="polite">00:00</div>
-      <button class="btn ghost" id="startTimer">Start</button>
-      <button class="btn ghost" id="stopTimer">Stop</button>
-      <button class="btn ghost" id="resetTimer">Reset</button>
-      <div class="spacer"></div>
-      <button class="btn ghost" id="copyHeader">Copy Handoff (c)</button>
-      <button class="btn danger" id="resetAll">Reset Case</button>
+
+<header>
+  <div class="head-inner">
+    <h1>STROKE CODE</h1>
+    <div class="mode-pill" role="tablist" aria-label="Mode">
+      <button id="mode-live" class="active" aria-selected="true">Live</button>
+      <button id="mode-sim" aria-selected="false">Sim</button>
     </div>
-  </header>
+    <div class="timer" id="timer" aria-live="polite">00:00</div>
+    <button class="btn ghost" id="btn-start">Start</button>
+    <button class="btn ghost" id="btn-stop">Stop</button>
+    <button class="btn ghost" id="btn-reset-timer">Reset Timer</button>
+    <button class="btn danger" id="btn-reset-case">Reset Case</button>
+  </div>
+</header>
 
-  <div class="container">
-    <div class="tabs" role="tablist" aria-label="Sections">
-      <button class="tab" role="tab" id="tab-prescreen" aria-controls="prescreen" aria-selected="true">Pre-Screen</button>
-      <button class="tab" role="tab" id="tab-nihss" aria-controls="nihss" aria-selected="false">NIHSS</button>
-      <button class="tab" role="tab" id="tab-elig" aria-controls="elig" aria-selected="false">TNK Eligibility</button>
-      <button class="tab" role="tab" id="tab-handoff" aria-controls="handoff" aria-selected="false">Handoff</button>
-    </div>
+<div class="hipaa"><b>Educational tool — do not enter PHI.</b> All data is stored locally in your browser and is cleared with "Reset Case." Use placeholders ([Patient], [MRN]) when generating notes.</div>
 
-    <!-- Pre-Screen -->
-    <section id="prescreen" class="tab-content active" role="tabpanel" aria-labelledby="tab-prescreen">
-      <div class="block">
-        <h3>Last Known Well</h3>
-        <div class="inline">
-          <input type="time" id="lkn-time" class="input small" />
-          <button class="input" id="lkn-now" style="cursor:pointer">Now</button>
-          <button class="input" id="lkn-unknown" style="cursor:pointer">Unknown</button>
-          <span id="lkn-status" class="badge info" style="display:none"></span>
-        </div>
-        <div class="inline" style="margin-top:8px">
-          <label class="muted" for="disc-time" style="width:160px">Discovery time</label>
-          <input type="time" id="disc-time" class="input small" />
-        </div>
-      </div>
+<div class="container">
 
-      <div class="block">
-        <h3>Blood Pressure</h3>
-        <div class="inline">
-          <input id="sbp" class="input small" type="number" inputmode="numeric" placeholder="SBP" min="0" />
-          <span>/</span>
-          <input id="dbp" class="input small" type="number" inputmode="numeric" placeholder="DBP" min="0" />
-          <span id="bp-status" class="badge info" style="display:none"></span>
-          <small class="muted">Target &lt;185/110 before IV thrombolysis</small>
-        </div>
-      </div>
+  <div id="sim-banner" style="display:none"></div>
 
-      <div class="block">
-        <h3>Glucose</h3>
-        <div class="inline">
-          <input type="number" class="input small" id="glucose" placeholder="mg/dL" inputmode="numeric" min="10" max="1000" />
-          <span class="muted">Treat if &lt; 50 mg/dL</span>
-        </div>
-      </div>
-
-      <div class="block">
-        <h3>Imaging</h3>
-        <div class="inline" style="gap:14px">
-          <div>
-            <div class="muted" style="margin-bottom:4px">CT Head</div>
-            <div class="seg" data-ct="result">
-              <button data-v="pending" class="active">Pending</button>
-              <button data-v="noich">No hemorrhage</button>
-              <button data-v="ich">Hemorrhage</button>
-            </div>
-          </div>
-          <div>
-            <div class="muted" style="margin-bottom:4px">CTA</div>
-            <div class="seg" data-cta="status">
-              <button data-v="pending" class="active">Pending</button>
-              <button data-v="negative">No LVO</button>
-              <button data-v="lvo">LVO</button>
-            </div>
-            <div id="lvoBanner" class="banner" style="display:none">CTA shows LVO — Consider MT pathway (page IR; transfer if needed).</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="block">
-        <h3>On anticoagulation?</h3>
-        <div class="seg" data-anticoag="status">
-          <button data-v="no" class="active">No</button>
-          <button data-v="yes">Yes</button>
-          <button data-v="unk">Unknown</button>
-        </div>
-        <div id="last-dose-wrap" class="inline" style="display:none;margin-top:8px">
-          <label class="muted" for="last-dose" style="width:160px">Last dose</label>
-          <select id="last-dose" class="input medium">
-            <option value="lt24">&lt; 24 h</option>
-            <option value="24to48">24–48 h</option>
-            <option value="gt48">&gt; 48 h</option>
-            <option value="unk">Unknown</option>
-          </select>
-          <span class="muted">If &gt;48 h since last DOAC, TNK may be considered; anti-Xa can assist.</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- NIHSS -->
-    <section id="nihss" class="tab-content" role="tabpanel" aria-labelledby="tab-nihss">
-      <h3>NIH Stroke Scale</h3>
-      <div id="nihssItems"></div>
-      <div class="muted" style="margin-top:6px">Click chips (0–max) or click the row to cycle. Keyboard: 0–4 sets score.</div>
-    </section>
-
-    <!-- TNK Eligibility -->
-    <section id="elig" class="tab-content" role="tabpanel" aria-labelledby="tab-elig">
-      <h3>TNK Eligibility — Rapid Core</h3>
-      <div class="block inline" style="justify-content:space-between">
-        <div>Age ≥ 18</div>
-        <div class="seg" data-crit="age"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div>
-      </div>
-      <div class="block inline" style="justify-content:space-between">
-        <div>Clinical ischemic stroke causing deficit</div>
-        <div class="seg" data-crit="clinical"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div>
-      </div>
-      <div class="block inline" style="justify-content:space-between">
-        <div>LKN ≤ 4.5 h</div>
-        <div class="seg" data-crit="lkw"><button data-v="yes">Yes</button><button data-v="no" class="active">No</button></div>
-      </div>
-      <div class="block inline" style="justify-content:space-between">
-        <div>CT: no intracranial hemorrhage</div>
-        <div class="seg" data-crit="ct"><button data-v="yes">Yes</button><button data-v="no" class="active">No</button></div>
-      </div>
-      <div class="block inline" style="justify-content:space-between">
-        <div>BP &lt; 185/110 or controlled</div>
-        <div class="seg" data-crit="bp"><button data-v="yes">Yes</button><button data-v="no" class="active">No</button></div>
-      </div>
-
-      <h3 style="margin-top:16px">Absolute Contraindications (toggle any that apply)</h3>
-      <div class="block">
-        <div class="inline" style="justify-content:space-between">
-          <div>Current intracranial hemorrhage or suspected SAH</div>
-          <div class="seg" data-abs="ich"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Known intracranial neoplasm/AVM/aneurysm at high risk</div>
-          <div class="seg" data-abs="icmass"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Intracranial or spinal surgery, or serious head trauma ≤ 3 months</div>
-          <div class="seg" data-abs="neurosx3mo"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Ischemic stroke ≤ 3 months</div>
-          <div class="seg" data-abs="stroke3mo"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Active internal bleeding</div>
-          <div class="seg" data-abs="bleed"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Platelets &lt; 100,000</div>
-          <div class="seg" data-abs="plt"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>INR &gt; 1.7 or PTT elevated (therapeutic heparin)</div>
-          <div class="seg" data-abs="inrptt"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>DOAC within 48 h (unless specific assay negative)</div>
-          <div class="seg" data-abs="doac"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px">
-          <div>Uncontrolled BP despite treatment (&gt;185/110)</div>
-          <div class="seg" data-abs="refracbp"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div>
-        </div>
-      </div>
-
-      <h3 style="margin-top:16px">Coagulopathy / Labs</h3>
-      <div class="block inline" style="justify-content:space-between">
-        <div>Platelets / CBC available</div>
-        <div class="seg" data-lab="cbc"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div>
-      </div>
-      <div class="block inline" style="justify-content:space-between">
-        <div>INR/PTT available</div>
-        <div class="seg" data-lab="inr"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div>
-      </div>
-
-      <div id="elig-banner" class="block" style="display:none;margin-top:10px"></div>
-    </section>
-
-    <!-- Handoff -->
-    <section id="handoff" class="tab-content" role="tabpanel" aria-labelledby="tab-handoff">
-      <h3>Handoff</h3>
-      <textarea id="handoff-text" readonly></textarea>
-      <div class="inline" style="margin-top:10px">
-        <button class="btn primary" id="copy-handoff">Copy Summary</button>
-      </div>
-    </section>
-
-    <div class="score-display" id="score-display">NIHSS: <span id="nihss-score">0</span></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="triage" aria-selected="true"><span class="step-num">1</span>Triage</button>
+    <button class="tab" role="tab" data-tab="exam" aria-selected="false"><span class="step-num">2</span>Exam (NIHSS)</button>
+    <button class="tab" role="tab" data-tab="time" aria-selected="false"><span class="step-num">3</span>Time / Window</button>
+    <button class="tab" role="tab" data-tab="imaging" aria-selected="false"><span class="step-num">4</span>Imaging</button>
+    <button class="tab" role="tab" data-tab="tnk" aria-selected="false"><span class="step-num">5</span>TNK</button>
+    <button class="tab" role="tab" data-tab="mt" aria-selected="false"><span class="step-num">6</span>MT</button>
+    <button class="tab" role="tab" data-tab="ich" aria-selected="false" id="tab-ich" style="display:none"><span class="step-num">!</span>ICH/SAH</button>
+    <button class="tab" role="tab" data-tab="note" aria-selected="false"><span class="step-num">7</span>Note</button>
+    <button class="tab" role="tab" data-tab="drill" aria-selected="false"><span class="step-num">★</span>Drill</button>
+    <button class="tab" role="tab" data-tab="sim" aria-selected="false" id="tab-sim"><span class="step-num">⚑</span>Sim Cases</button>
   </div>
 
-  <script>
-    const $ = s=>document.querySelector(s);
-    const $$ = s=>Array.from(document.querySelectorAll(s));
-    const pad2 = n=>String(n).padStart(2,'0');
+  <!-- TRIAGE -->
+  <section class="panel" id="panel-triage" role="tabpanel">
+    <h2>Triage / Mimic Screen</h2>
+    <p class="muted">Before assuming this is a stroke, screen for mimics. AMS without a focal deficit has a wide differential.</p>
 
-    const KEY='stroke_code_v7_state';
-    let state={
-      tab:'prescreen',
-      lkn:'', disc:'',
-      sbp:'', dbp:'', glu:'',
-      ct:'pending', cta:'pending',
-      ac:'no', lastDose:'lt24',
-      crit:{age:'yes',clinical:'yes',lkw:'no',ct:'no',bp:'no'},
-      abs:{ich:'no', icmass:'no', neurosx3mo:'no', stroke3mo:'no', bleed:'no', plt:'no', inrptt:'no', doac:'no', refracbp:'no'},
-      labs:{cbc:'yes', inr:'yes'},
-      nihss:{},
-      timerRunning:false, t0:0, elapsed:0
-    };
-    function load(){ try{ const raw=localStorage.getItem(KEY); if(raw){ state={...state,...JSON.parse(raw)} } }catch{} }
-    function save(){ localStorage.setItem(KEY, JSON.stringify(state)) }
+    <div class="card">
+      <div class="grid">
+        <div>
+          <div class="muted">Age</div>
+          <input id="age" class="input md" type="number" min="0" max="120" placeholder="years" />
+        </div>
+        <div>
+          <div class="muted">Chief complaint (no PHI)</div>
+          <input id="cc" class="input" style="width:100%" placeholder="e.g., R-sided weakness" />
+        </div>
+      </div>
+    </div>
 
-    function showTab(name){
-      $$('.tab-content').forEach(n=>n.classList.remove('active'));
-      $$('.tab').forEach(n=>n.setAttribute('aria-selected','false'));
-      $('#'+name).classList.add('active');
-      $('#tab-'+name).setAttribute('aria-selected','true');
-      $('#score-display').style.display = name==='nihss' ? 'block':'none';
-      if(name==='handoff') compileHandoff();
-      state.tab=name; save();
+    <h3>Vitals & Glucose</h3>
+    <div class="card">
+      <div class="row">
+        <span class="muted">BP</span>
+        <input id="sbp" class="input sm" type="number" placeholder="SBP" />
+        <span>/</span>
+        <input id="dbp" class="input sm" type="number" placeholder="DBP" />
+        <span id="bp-badge" class="badge neutral">—</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="muted">Glucose</span>
+        <input id="glucose" class="input sm" type="number" placeholder="mg/dL" />
+        <span id="glu-badge" class="badge neutral">—</span>
+      </div>
+      <div class="teach">
+        <div class="teach-head"><span>Pre-thrombolysis BP & glucose</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p><b>Pre-TNK BP target:</b> &lt; 185/110. Treat with labetalol/nicardipine before TNK if higher.</p>
+          <p><b>Post-TNK / post-EVT (24h):</b> &lt; 180/105.</p>
+          <p><b>After successful EVT (2026):</b> Do <b>not</b> push SBP &lt; 140 — intensive lowering is harmful. Class III.</p>
+          <p><b>Glucose:</b> Treat &lt; 60. Avoid &gt; 180. Do <b>not</b> tight-control to 80–130 (hypoglycemia harm outweighs benefit).</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Mimic Screen</h3>
+    <div class="card">
+      <p class="muted" style="margin-bottom:8px">Toggle features that would shift you toward a mimic.</p>
+      <div class="grid">
+        <div class="row between"><span>AMS only, no focal deficit</span><div class="seg" data-mimic="amsOnly"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Fluctuating exam</span><div class="seg" data-mimic="fluctuating"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Fever / infection</span><div class="seg" data-mimic="fever"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Witnessed seizure / postictal</span><div class="seg" data-mimic="seizure"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Migraine with aura history</span><div class="seg" data-mimic="migraine"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Hyponatremia / metabolic suspicion</span><div class="seg" data-mimic="metabolic"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      </div>
+      <div id="mimic-banner" class="alert info" style="display:none;margin-top:10px"></div>
+      <div class="teach">
+        <div class="teach-head"><span>Common mimics to consider</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p><b>Hypoglycemia</b> — check glucose first, every time. &lt;60 → treat and reassess.</p>
+          <p><b>Post-ictal Todd's paralysis</b> — witnessed seizure or known epilepsy with deficit that improves over hours.</p>
+          <p><b>UTI / delirium</b> — fluctuating AMS, often older, no focal deficit.</p>
+          <p><b>Hyponatremia</b> — Na &lt; 125 can produce focal signs and AMS.</p>
+          <p><b>Migraine with aura</b> — known history, slow march, accompanied by headache.</p>
+          <p><b>Conversion / functional</b> — non-anatomic distribution, give-way weakness, Hoover's sign.</p>
+          <p><b>MS flare</b> — known MS, subacute. Not a stroke.</p>
+          <p>If you cannot rule a mimic out quickly, image anyway — but keep the differential open.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row between">
+      <button class="btn outline" data-go="exam">Continue → Exam</button>
+      <span class="muted small">Decision: did you keep stroke as primary working diagnosis?</span>
+      <div class="seg" data-mimic="primaryStroke"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div>
+    </div>
+  </section>
+
+  <!-- EXAM / NIHSS -->
+  <section class="panel" id="panel-exam" role="tabpanel">
+    <h2>Exam: NIHSS + LVO suspicion</h2>
+    <p class="muted">Score NIHSS. The cortical signs (★) below are weighted toward LVO suspicion in addition to total score.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">LVO suspicion features</h3>
+      <p class="muted small">Independent of NIHSS, mark cortical signs you can identify quickly at bedside.</p>
+      <div class="grid">
+        <div class="row between"><span>Forced gaze deviation</span><div class="seg" data-cortical="gazeDeviation"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Aphasia (dominant hemisphere)</span><div class="seg" data-cortical="aphasia"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Hemineglect / extinction</span><div class="seg" data-cortical="neglect"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+        <div class="row between"><span>Dense hemiparesis (≥3 on one side)</span><div class="seg" data-cortical="denseHemi"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      </div>
+      <div id="lvo-badge-row" style="margin-top:10px">
+        <span>LVO suspicion: <span id="lvo-badge" class="badge neutral">—</span></span>
+      </div>
+      <div id="lvo-imaging-prompt" class="alert info" style="display:none">
+        <b>High LVO suspicion → Order CTA + CTP regardless of LKW.</b> CTP identifies salvageable penumbra and qualifies the patient for late-window or large-core MT pathways.
+      </div>
+      <div class="teach">
+        <div class="teach-head"><span>How LVO suspicion is derived</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p><b>High</b> = NIHSS ≥ 6 with any cortical sign, or ≥ 2 cortical signs.</p>
+          <p><b>Moderate</b> = NIHSS ≥ 6 with no cortical signs, or NIHSS &lt; 6 with one cortical sign.</p>
+          <p><b>Low</b> = NIHSS &lt; 6, no cortical signs.</p>
+          <p>Pre-hospital scales (RACE, FAST-ED, VAN, LAMS) all use these features. Cortical signs are more specific for LVO than total NIHSS.</p>
+          <p><b>Posterior circulation caveat:</b> NIHSS systematically underscores posterior strokes. Vertigo, ataxia, dysarthria, crossed signs, or reduced consciousness with relatively low NIHSS still warrant CTA.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>NIHSS</h3>
+    <div id="nihss-items"></div>
+    <p class="muted small">Click a chip to set the score. Click the row to cycle. Keyboard 0–4 sets the focused chip's row.</p>
+  </section>
+
+  <!-- TIME / WINDOW -->
+  <section class="panel" id="panel-time" role="tabpanel">
+    <h2>Time & Window Classification</h2>
+
+    <div class="card">
+      <h3 style="margin-top:0">Last Known Well</h3>
+      <div class="row">
+        <span class="muted">LKW type:</span>
+        <div class="seg" data-lkwtype>
+          <button data-v="known" class="active">Known time</button>
+          <button data-v="wakeup">Wake-up</button>
+          <button data-v="unknown">Unknown</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px" id="lkw-time-wrap">
+        <span class="muted">LKW time</span>
+        <input id="lkw-time" class="input sm" type="time" />
+        <button id="lkw-now" class="btn outline">Now</button>
+        <span class="muted">Discovery</span>
+        <input id="lkw-disc" class="input sm" type="time" />
+      </div>
+      <div style="margin-top:10px">
+        Window: <span id="window-badge" class="badge neutral">—</span>
+      </div>
+      <div class="teach">
+        <div class="teach-head"><span>How window classification works (2026)</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p><b>Standard window</b> = ≤ 4.5 h from LKW. TNK Class 1 if eligible.</p>
+          <p><b>Extended window</b> = 4.5–24 h with salvageable tissue on advanced imaging. MT preferred when LVO present (Class 1, 6–24 h). Extended-window TNK is Class 2b — only when MT is not feasible (TIMELESS was negative for TNK in patients who got rapid MT; HOPE/TRACE-III support TNK in selected non-MT patients).</p>
+          <p><b>Wake-up / unknown LKW</b> = treat the discovery time as max bound. MRI DWI/FLAIR mismatch (positive DWI, negative FLAIR) qualifies for IVT (per WAKE-UP). Perfusion mismatch qualifies for MT.</p>
+          <p>Unknown LKW does <b>not</b> equal ineligible — it just routes through advanced imaging.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="window-imaging-strategy" class="card">
+      <h3 style="margin-top:0">Imaging strategy for this window</h3>
+      <div id="strategy-text" class="muted">Set window above to see recommended imaging.</div>
+    </div>
+  </section>
+
+  <!-- IMAGING -->
+  <section class="panel" id="panel-imaging" role="tabpanel">
+    <h2>Imaging Results</h2>
+    <p class="muted">Enter results as they come back. Hemorrhage on NCCT diverts you to ICH/SAH pathway.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">NCCT Head</h3>
+      <div class="seg" data-img="ncct">
+        <button data-v="pending" class="active">Pending</button>
+        <button data-v="negative">No hemorrhage</button>
+        <button data-v="ich">ICH</button>
+        <button data-v="sah">SAH</button>
+        <button data-v="early">Early ischemic changes</button>
+      </div>
+      <div id="ncct-aspects-row" style="margin-top:8px;display:none">
+        <span class="muted">ASPECTS</span>
+        <input id="aspects" class="input sm" type="number" min="0" max="10" placeholder="0–10" />
+        <span class="muted small">≥6 standard MT, 3–5 large core (age &lt;80, NIHSS ≥6)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">CTA</h3>
+      <div class="seg" data-img="cta">
+        <button data-v="pending" class="active">Pending</button>
+        <button data-v="negative">No LVO</button>
+        <button data-v="lvo-anterior">Anterior LVO</button>
+        <button data-v="lvo-basilar">Basilar occlusion</button>
+        <button data-v="m2">M2 / distal</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">CTP / MRI</h3>
+      <div class="row">
+        <span class="muted">CTP</span>
+        <div class="seg" data-img="ctp">
+          <button data-v="na" class="active">Not done</button>
+          <button data-v="mismatch">Mismatch present</button>
+          <button data-v="nomismatch">No mismatch</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="muted">MRI DWI/FLAIR</span>
+        <div class="seg" data-img="mri">
+          <button data-v="na" class="active">Not done</button>
+          <button data-v="mismatch">DWI+ / FLAIR− (mismatch)</button>
+          <button data-v="nomismatch">DWI+ / FLAIR+</button>
+        </div>
+      </div>
+      <div class="teach">
+        <div class="teach-head"><span>What CTP and MRI mismatch buy you</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p><b>CTP mismatch</b> = ischemic core + larger penumbra. Qualifies extended-window MT (DAWN/DEFUSE-3) and large-core MT (SELECT2/ANGEL-ASPECT) candidates.</p>
+          <p><b>DWI/FLAIR mismatch</b> = positive DWI but negative FLAIR signal — likely &lt; 4.5 h since stroke onset. Per WAKE-UP, qualifies for IVT in unknown-LKW patients.</p>
+          <p>The MRI mismatch is for IVT eligibility in wake-ups; the CTP mismatch is for MT eligibility in late windows. Different decisions, different imaging.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="imaging-summary" class="alert info" style="display:none"></div>
+  </section>
+
+  <!-- TNK -->
+  <section class="panel" id="panel-tnk" role="tabpanel">
+    <h2>TNK Eligibility</h2>
+    <p class="muted">Tenecteplase 0.25 mg/kg IV bolus, max 25 mg, over 5 seconds. Use your institution's order set for dose calculation.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">Disabling deficit?</h3>
+      <p class="muted small">2026 guideline: thrombolyze any disabling deficit regardless of NIHSS. Non-disabling NIHSS 0–5 → DAPT, not TNK (PRISMS).</p>
+      <div class="seg" data-tnk="disabling">
+        <button data-v="unknown" class="active">Not assessed</button>
+        <button data-v="yes">Disabling</button>
+        <button data-v="no">Non-disabling</button>
+      </div>
+      <div class="teach">
+        <div class="teach-head"><span>What counts as "disabling"?</span><span class="toggle"></span></div>
+        <div class="teach-body">
+          <p>Inability to perform ADLs or return to occupation, in the patient's own life context.</p>
+          <p><b>Usually disabling:</b> any aphasia, hemianopia, neglect, hand weakness, gait ataxia, dysphagia.</p>
+          <p><b>Occupation-specific:</b> mild fine-motor deficit in a surgeon, mild dysarthria in a teacher, mild hand weakness in a musician — all disabling.</p>
+          <p><b>Often non-disabling:</b> isolated mild facial droop, isolated mild dysarthria with intact language, mild distal sensory loss without functional impact.</p>
+          <p>If unsure, lean toward disabling. Aphasia at NIHSS 2 still gets TNK.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Core inclusion criteria</h3>
+    <div class="card">
+      <div class="row between"><span>Age ≥ 18</span><div class="seg" data-tnk-crit="age"><button data-v="yes" class="active">Yes</button><button data-v="no">No</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Within standard window (≤ 4.5 h LKW)</span><span id="tnk-window-status" class="badge neutral">—</span></div>
+      <div class="row between" style="margin-top:6px"><span>NCCT: no hemorrhage</span><span id="tnk-ncct-status" class="badge neutral">—</span></div>
+      <div class="row between" style="margin-top:6px"><span>BP &lt; 185/110 (or controlled)</span><span id="tnk-bp-status" class="badge neutral">—</span></div>
+    </div>
+
+    <h3>Absolute contraindications</h3>
+    <div class="card">
+      <div class="row between"><span>Active internal bleeding</span><div class="seg" data-tnk-abs="bleed"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Platelets &lt; 100k</span><div class="seg" data-tnk-abs="plt"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>INR &gt; 1.7 / therapeutic heparin / elevated PTT</span><div class="seg" data-tnk-abs="inr"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>DOAC within 48 h (and not reversed / specific assay positive)</span><div class="seg" data-tnk-abs="doac"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Intracranial/spinal surgery or serious head trauma ≤ 3 mo</span><div class="seg" data-tnk-abs="surg3"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Ischemic stroke ≤ 3 mo</span><div class="seg" data-tnk-abs="stroke3"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Intracranial neoplasm/AVM/aneurysm at high bleeding risk</span><div class="seg" data-tnk-abs="icmass"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Suspected SAH / aortic dissection / endocarditis</span><div class="seg" data-tnk-abs="sus"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+      <div class="row between" style="margin-top:6px"><span>Glucose &lt; 50 (after correction still deficit) or &gt; 400</span><div class="seg" data-tnk-abs="glu"><button data-v="no" class="active">No</button><button data-v="yes">Yes</button></div></div>
+    </div>
+
+    <div id="tnk-decision" class="pathway-banner" style="display:none"></div>
+    <div class="teach">
+      <div class="teach-head"><span>Extended window TNK (4.5–24 h)</span><span class="toggle"></span></div>
+      <div class="teach-body">
+        <p>Class 2b in 2026. For select patients with salvageable tissue on advanced imaging when MT is not feasible (no IR, no transfer). TIMELESS was negative for TNK in patients who got rapid MT — so do not delay MT to give late-window TNK.</p>
+        <p>Decision is usually attending-level. Document the rationale carefully.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MT -->
+  <section class="panel" id="panel-mt" role="tabpanel">
+    <h2>Mechanical Thrombectomy Decision</h2>
+    <p class="muted">Three pathways in 2026: standard MT, large-core MT, basilar.</p>
+
+    <div id="mt-pathway-recommend" class="alert info" style="display:none"></div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Anterior circulation LVO — standard pathway (Class 1)</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li>Anterior circulation LVO on CTA</li>
+        <li>0–24 h from LKW</li>
+        <li>NIHSS ≥ 6</li>
+        <li>ASPECTS ≥ 6</li>
+        <li>Pre-stroke mRS ≤ 1</li>
+        <li>Age ≥ 18</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Large core MT — expanded pathway (Class 1, new in 2026)</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li>Anterior LVO with ASPECTS 3–5</li>
+        <li>Age &lt; 80</li>
+        <li>NIHSS ≥ 6</li>
+        <li>0–24 h from LKW</li>
+      </ul>
+      <p class="small muted">Based on SELECT2, ANGEL-ASPECT, TESLA. Patients previously excluded for "too much core" can now benefit.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Basilar artery occlusion (Class 1)</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li>Basilar occlusion on CTA</li>
+        <li>NIHSS ≥ 10</li>
+        <li>0–24 h from LKW</li>
+      </ul>
+      <p class="small muted">Based on BAOCHE and ATTENTION. Posterior circulation has its own window — do not apply anterior-circulation NIHSS thresholds here.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">If extended window (6–24 h)</h3>
+      <p class="small muted">Confirm CTP mismatch (DAWN/DEFUSE-3 criteria) or MRI mismatch.</p>
+      <div class="row between"><span>CTP / MRI shows mismatch</span><span id="mt-mismatch-status" class="badge neutral">—</span></div>
+    </div>
+
+    <div class="teach">
+      <div class="teach-head"><span>BP after EVT — 2026 key change</span><span class="toggle"></span></div>
+      <div class="teach-body">
+        <p>After successful reperfusion, do <b>not</b> push SBP &lt; 140. Class III (harm).</p>
+        <p>Target &lt; 180/105 for first 24 h. Avoid intensive lowering — the brain just got its blood back, and overcorrection causes worse outcomes.</p>
+        <p>The reflex from the ICH world ("get the BP down fast") does not apply here.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICH/SAH -->
+  <section class="panel" id="panel-ich" role="tabpanel">
+    <h2>Hemorrhage Pathway</h2>
+    <p class="muted">NCCT positive for hemorrhage diverts you here. Different rules entirely.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">ICH BP management</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li><b>Target SBP:</b> 130–150 mm Hg if presenting SBP &gt; 150. Avoid SBP &lt; 110.</li>
+        <li>INTERACT-2 supports modest lowering (target &lt;140). ATACH-II showed no benefit and more renal injury with aggressive (&lt;140) targets — current consensus is moderate lowering.</li>
+        <li>Use IV labetalol or nicardipine drip. Avoid hydralazine boluses.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">SAH BP management</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li><b>Pre-securing aneurysm:</b> SBP &lt; 160 (some institutions &lt; 140). Balance rebleed risk vs perfusion.</li>
+        <li><b>Post-securing:</b> more permissive, manage for vasospasm.</li>
+        <li>Nimodipine 60 mg PO/NG q4h × 21 d for vasospasm prophylaxis.</li>
+        <li>Consult NSGY immediately. CTA + DSA for aneurysm characterization.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Anticoagulation reversal</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li><b>Warfarin (INR &gt; 1.4):</b> 4-factor PCC (Kcentra) + IV vitamin K 10 mg.</li>
+        <li><b>Dabigatran:</b> Idarucizumab 5 g IV.</li>
+        <li><b>Apixaban / rivaroxaban:</b> Andexanet alfa (institution-dependent) or 4F-PCC.</li>
+        <li><b>Heparin / LMWH:</b> Protamine.</li>
+        <li><b>Antiplatelets:</b> Platelet transfusion not routinely recommended unless neurosurgical intervention planned (PATCH was negative).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">General ICH/SAH care</h3>
+      <ul style="padding-left:18px;font-size:13px">
+        <li>HOB 30°, normothermia, normoglycemia, normonatremia.</li>
+        <li>Seizure prophylaxis only for lobar ICH or clinical seizures (not routine).</li>
+        <li>Reverse anticoagulation as above. STOP all antithrombotics.</li>
+        <li>Repeat NCCT at 6 h or sooner if neuro change to assess expansion.</li>
+        <li>Disposition: NeuroICU.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- NOTE -->
+  <section class="panel" id="panel-note" role="tabpanel">
+    <h2>Note Generator</h2>
+    <p class="muted">Structured template using your entered data + your impression and plan. Use [Patient]/[MRN] placeholders — do not enter PHI.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">Your reasoning</h3>
+      <div class="muted small">Impression — your one-liner clinical synthesis.</div>
+      <textarea id="note-impression" class="note" style="min-height:80px" placeholder="e.g., [Patient] is a [Age]F with sudden R hemiparesis and aphasia, NIHSS 14, high LVO suspicion, within 2h LKW. Consistent with L MCA M1 occlusion."></textarea>
+      <div class="muted small" style="margin-top:8px">Plan — what you would do.</div>
+      <textarea id="note-plan" class="note" style="min-height:80px" placeholder="e.g., 1) Activate IR for MT. 2) TNK 0.25 mg/kg per order set. 3) BP control to <185/110 with labetalol. 4) NeuroICU admit. 5) Stroke workup..."></textarea>
+    </div>
+
+    <h3>Compiled note</h3>
+    <textarea id="note-output" class="note" readonly></textarea>
+    <div class="copy-row">
+      <button class="btn primary" id="copy-note">Copy Note</button>
+      <button class="btn outline" id="recompile">Recompile</button>
+      <span class="muted small" style="align-self:center">Paste into your EMR. Replace [Patient]/[MRN]/[DOB] with PHI in your chart, not here.</span>
+    </div>
+  </section>
+
+  <!-- DRILL -->
+  <section class="panel" id="panel-drill" role="tabpanel">
+    <h2>Drill Modules</h2>
+    <p class="muted">Quick recall practice. Each drill is a 5–8 question quiz with explanations.</p>
+
+    <div id="drill-menu" class="grid">
+      <div class="drill-card" data-drill="lvo"><h4>LVO suspicion</h4><div class="muted">Read vignette → call high/mod/low.</div></div>
+      <div class="drill-card" data-drill="window"><h4>Window classification</h4><div class="muted">LKW + clock → standard / extended / wake-up.</div></div>
+      <div class="drill-card" data-drill="mimic"><h4>Stroke vs mimic</h4><div class="muted">Features → call it.</div></div>
+      <div class="drill-card" data-drill="bp"><h4>BP thresholds</h4><div class="muted">Pre-TNK, post-EVT, ICH, SAH.</div></div>
+      <div class="drill-card" data-drill="contra"><h4>Contraindications</h4><div class="muted">Scenario → TNK on or off?</div></div>
+      <div class="drill-card" data-drill="disabling"><h4>Disabling vs non-disabling</h4><div class="muted">Mild stroke — treat or DAPT?</div></div>
+    </div>
+
+    <div id="drill-active" style="display:none">
+      <div id="drill-progress" class="muted small"></div>
+      <div id="drill-prompt" class="quiz-prompt"></div>
+      <div id="drill-options" class="quiz-options"></div>
+      <div id="drill-explain" class="quiz-explain" style="display:none"></div>
+      <div class="copy-row">
+        <button class="btn primary" id="drill-next" style="display:none">Next →</button>
+        <button class="btn outline" id="drill-exit">Back to drills</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIM CASES -->
+  <section class="panel" id="panel-sim" role="tabpanel">
+    <h2>Sim Cases</h2>
+    <p class="muted">Pick a case. App will set up the context and walk you through. Decisions are tracked; you'll get a scorecard at the end.</p>
+    <div id="sim-case-list" class="grid"></div>
+    <div id="sim-active" style="display:none">
+      <div id="sim-case-card" class="case-card"></div>
+      <p class="muted small">Switch to mode = Sim, then walk the case through the workflow tabs (1 → 7). Tap "End Case & Score" when finished.</p>
+      <div class="copy-row">
+        <button class="btn primary" id="sim-end">End Case & Score</button>
+        <button class="btn outline" id="sim-exit">Exit case</button>
+      </div>
+      <div id="sim-scorecard" style="display:none"></div>
+    </div>
+  </section>
+
+  <div class="score-pill" id="nihss-pill">NIHSS: <span id="nihss-total">0</span></div>
+</div>
+
+<div id="sim-feedback" role="dialog" aria-live="polite">
+  <header><span id="sim-feedback-title">Teaching point</span><button class="close" id="sim-feedback-close">×</button></header>
+  <div class="body" id="sim-feedback-body"></div>
+</div>
+
+<script>
+"use strict";
+
+// ============================================================
+// State
+// ============================================================
+const KEY = 'stroke_v8_state';
+function freshState(){
+  return {
+    mode:'live',
+    activeTab:'triage',
+    age:'', cc:'',
+    sbp:'', dbp:'', glucose:'',
+    mimic:{amsOnly:'no', fluctuating:'no', fever:'no', seizure:'no', migraine:'no', metabolic:'no', primaryStroke:'yes'},
+    cortical:{gazeDeviation:'no', aphasia:'no', neglect:'no', denseHemi:'no'},
+    nihss:{},
+    lkw:{type:'known', time:'', disc:''},
+    img:{ncct:'pending', cta:'pending', ctp:'na', mri:'na', aspects:''},
+    tnk:{disabling:'unknown', age:'yes',
+         abs:{bleed:'no', plt:'no', inr:'no', doac:'no', surg3:'no', stroke3:'no', icmass:'no', sus:'no', glu:'no'}},
+    note:{impression:'', plan:''},
+    timer:{running:false, t0:0, elapsed:0},
+    sim:{caseId:null, decisions:[], started:0, ended:0}
+  };
+}
+let S = freshState();
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){ S = {...freshState(), ...JSON.parse(raw)} }
+  }catch(e){}
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)) }catch(e){} }
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const pad2 = n => String(n).padStart(2,'0');
+
+// ============================================================
+// NIHSS items
+// ============================================================
+const NIHSS = [
+  {id:'1a', name:'1a. LOC', short:'LOC', max:3},
+  {id:'1b', name:'1b. LOC Questions (month, age)', short:'LOC-Q', max:2},
+  {id:'1c', name:'1c. LOC Commands (close eyes, make fist)', short:'LOC-C', max:2},
+  {id:'2',  name:'2. Best Gaze', short:'Gaze', max:2, cortical:true},
+  {id:'3',  name:'3. Visual Fields', short:'VF', max:3, cortical:true},
+  {id:'4',  name:'4. Facial Palsy', short:'Facial', max:3},
+  {id:'5a', name:'5a. Motor — Left Arm', short:'L-Arm', max:4},
+  {id:'5b', name:'5b. Motor — Right Arm', short:'R-Arm', max:4},
+  {id:'6a', name:'6a. Motor — Left Leg', short:'L-Leg', max:4},
+  {id:'6b', name:'6b. Motor — Right Leg', short:'R-Leg', max:4},
+  {id:'7',  name:'7. Limb Ataxia', short:'Ataxia', max:2},
+  {id:'8',  name:'8. Sensory', short:'Sensory', max:2},
+  {id:'9',  name:'9. Language', short:'Lang', max:3, cortical:true},
+  {id:'10', name:'10. Dysarthria', short:'Dys', max:2},
+  {id:'11', name:'11. Extinction/Inattention', short:'Ext', max:2, cortical:true},
+];
+
+// ============================================================
+// Vignettes (8 starter cases)
+// ============================================================
+const VIGNETTES = [
+  {
+    id:'classic-lvo', title:'Classic anterior LVO', difficulty:'easy',
+    presentation:'68F, witnessed sudden onset right hemiparesis and inability to speak at home. EMS arrived at scene 30 min after onset. ED arrival 60 min after onset. PMH HTN, AF (on apixaban, last dose >72h ago).',
+    setup:{
+      age:'68', cc:'R hemiparesis, aphasia',
+      sbp:'162', dbp:'88', glucose:'118',
+      lkw:{type:'known', time:hoursAgo(1), disc:hoursAgo(0.5)},
+      cortical:{gazeDeviation:'yes', aphasia:'yes', neglect:'no', denseHemi:'yes'},
+      nihss:{'1a':1,'2':2,'4':2,'5b':4,'6b':2,'9':2,'10':1}, // 14
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'standard', lvoSuspicion:'high',
+      tnkEligible:true, mtCandidate:true, hemorrhage:false
+    },
+    teaching:[
+      'NIHSS 14 with gaze deviation + aphasia + dense hemiparesis = high LVO suspicion. Order CTA + CTP regardless of LKW certainty.',
+      'TNK 0.25 mg/kg max 25 mg (per institution order set), single 5-second IV bolus.',
+      'Apixaban last dose >48 h ago → not an absolute contraindication. If <48 h, would need anti-Xa or specific reversal consideration.',
+      'After TNK, page IR for MT — do not wait to see if TNK works. The pathways run in parallel.',
+      'Pre-TNK BP: 162/88 is fine (<185/110). Post-TNK 24h: <180/105. Do NOT push <140 if reperfused.'
+    ]
+  },
+  {
+    id:'wakeup-lvo', title:'Wake-up LVO', difficulty:'medium',
+    presentation:'72M went to bed normal at 23:00. Woke at 06:30 with R-sided weakness and global aphasia. Family called 911 at 07:00. ED arrival 07:30. PMH HTN, hyperlipidemia, no anticoag.',
+    setup:{
+      age:'72', cc:'Wake-up R hemiparesis, aphasia',
+      sbp:'178', dbp:'94', glucose:'132',
+      lkw:{type:'wakeup', time:'23:00', disc:'06:30'},
+      cortical:{gazeDeviation:'yes', aphasia:'yes', neglect:'no', denseHemi:'yes'},
+      nihss:{'1a':1,'2':2,'4':2,'5b':3,'6b':2,'9':3,'10':2}, // 15
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'wakeup', lvoSuspicion:'high',
+      tnkEligible:'imaging-dependent', mtCandidate:true, hemorrhage:false
+    },
+    teaching:[
+      'Wake-up does NOT mean ineligible. Use imaging to qualify — DWI/FLAIR mismatch for IVT (per WAKE-UP), CTP mismatch for MT.',
+      'Discovery time is the upper bound for treatment-window discussions, but the imaging selection is what actually qualifies the patient.',
+      'High LVO suspicion → CTA + CTP/MRI. If anterior LVO with mismatch and ASPECTS ≥6 → MT, Class 1 (6–24 h).',
+      'For TNK in wake-up: only if MRI shows DWI+/FLAIR− mismatch (likely <4.5 h since onset). Otherwise, MT-only.',
+      'BP 178/94 is at the edge — get below 185/110 before TNK.'
+    ]
+  },
+  {
+    id:'large-core', title:'Extended-window large-core MT', difficulty:'hard',
+    presentation:'70F, last seen well 8 hours ago. Husband found her on the floor with L hemiplegia and gaze right. ED arrival 9 h after LKW. NCCT shows ASPECTS 4. CTA shows R M1 occlusion. CTP shows mismatch.',
+    setup:{
+      age:'70', cc:'L hemiplegia, gaze deviation',
+      sbp:'168', dbp:'90', glucose:'140',
+      lkw:{type:'known', time:hoursAgo(9), disc:hoursAgo(0.5)},
+      cortical:{gazeDeviation:'yes', aphasia:'no', neglect:'yes', denseHemi:'yes'},
+      nihss:{'1a':1,'2':2,'3':2,'4':2,'5a':4,'6a':3,'8':1,'11':2}, // 17
+      img:{ncct:'early', cta:'lvo-anterior', ctp:'mismatch', aspects:'4'},
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'extended', lvoSuspicion:'high',
+      tnkEligible:false, // 9h out of standard window; extended TNK only if no MT
+      mtCandidate:true, // large core pathway
+      hemorrhage:false
+    },
+    teaching:[
+      '2026 update: ASPECTS 3–5 with age <80 and NIHSS ≥6 still qualifies for MT (SELECT2, ANGEL-ASPECT, TESLA). Old "ASPECTS ≥6 only" rule is outdated.',
+      'Extended window (4.5–24 h): MT is preferred over TNK. TIMELESS was negative for late-window TNK in patients getting rapid MT — do not delay MT.',
+      'TNK at 9 h is Class 2b only and only when MT is not feasible. Here MT is feasible, so go straight to MT.',
+      'After MT with successful reperfusion: do not push SBP <140. Target <180/105 first 24 h.'
+    ]
+  },
+  {
+    id:'basilar', title:'Basilar artery occlusion', difficulty:'hard',
+    presentation:'58M with sudden onset confusion, dysarthria, and bilateral leg weakness 6 h ago. Sleepy on arrival, NIHSS 14. CTA shows basilar mid-segment occlusion. NCCT no hemorrhage.',
+    setup:{
+      age:'58', cc:'Confusion, dysarthria, bilateral weakness',
+      sbp:'148', dbp:'82', glucose:'108',
+      lkw:{type:'known', time:hoursAgo(7), disc:hoursAgo(1)},
+      cortical:{gazeDeviation:'no', aphasia:'no', neglect:'no', denseHemi:'no'},
+      nihss:{'1a':2,'1b':1,'1c':1,'5a':2,'5b':2,'6a':2,'6b':2,'10':2}, // 14
+      img:{ncct:'negative', cta:'lvo-basilar', ctp:'na', aspects:''},
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'extended', lvoSuspicion:'moderate',
+      tnkEligible:false, // 7h, extended window
+      mtCandidate:true, hemorrhage:false
+    },
+    teaching:[
+      'NIHSS 14 with no anterior cortical signs scores "moderate" by the LVO algorithm — but basilar is high-stakes regardless. Posterior NIHSS underscores severity. Trust the syndrome (decreased LOC, dysarthria, bilateral motor) and the CTA, not the suspicion score.',
+      'Basilar occlusion has its own pathway: 0–24 h with NIHSS ≥10 → MT, Class 1 (BAOCHE, ATTENTION).',
+      'NIHSS underscores posterior strokes — vertigo, ataxia, dysarthria, decreased consciousness, crossed signs. Always image with CTA when posterior signs are present, even with low NIHSS.',
+      'Cortical-sign rules from anterior circulation do not apply here. Basilar is high-stakes regardless of NIHSS.',
+      'Outcome without recanalization is grim. Activate IR immediately.'
+    ]
+  },
+  {
+    id:'mild-disabling', title:'Mild stroke with disabling deficit', difficulty:'medium',
+    presentation:'45F news anchor with sudden expressive aphasia and word-finding difficulty 90 min ago. No motor, no sensory, NIHSS 3 (language 2, dysarthria 1). NCCT negative.',
+    setup:{
+      age:'45', cc:'Expressive aphasia',
+      sbp:'138', dbp:'82', glucose:'94',
+      lkw:{type:'known', time:hoursAgo(1.5), disc:hoursAgo(1)},
+      cortical:{gazeDeviation:'no', aphasia:'yes', neglect:'no', denseHemi:'no'},
+      nihss:{'9':2,'10':1}, // 3
+      img:{ncct:'negative', cta:'pending', ctp:'na'},
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'standard', lvoSuspicion:'moderate',
+      tnkEligible:true, mtCandidate:'cta-dependent', hemorrhage:false
+    },
+    teaching:[
+      'NIHSS 3 looks "mild" but aphasia in a news anchor is profoundly disabling. 2026 guideline: thrombolyze any disabling deficit regardless of NIHSS.',
+      'PRISMS trial showed no benefit for IVT in NIHSS 0–5 NON-disabling stroke → DAPT instead. But "non-disabling" is a clinical judgment based on the patient\'s function and occupation.',
+      'Aphasia at any score is generally disabling. Visual neglect, hemianopia, hand weakness, dysphagia, gait ataxia — usually disabling.',
+      'Get CTA — even mild stroke can have an LVO underneath, and that changes the MT decision.'
+    ]
+  },
+  {
+    id:'post-evt-bp', title:'Post-EVT BP trap', difficulty:'medium',
+    presentation:'Same patient as case 1 (classic LVO). Post-MT, TICI 2b reperfusion. Now in NeuroICU, BP 175/95, neuro exam improved. Resident asks: "Should I drop the BP to <140?"',
+    setup:{
+      age:'68', cc:'Post-MT, TICI 2b reperfusion',
+      sbp:'175', dbp:'95', glucose:'118',
+      lkw:{type:'known', time:hoursAgo(4), disc:hoursAgo(3.5)},
+      img:{ncct:'negative', cta:'lvo-anterior', ctp:'na'},
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'standard', bpTarget:'<180/105', avoidBelow140:true,
+      tnkEligible:false, // already given
+      mtCandidate:false // already done
+    },
+    teaching:[
+      '2026 KEY POINT: After successful EVT, do NOT push SBP <140. Class III recommendation — intensive lowering is harmful.',
+      'Multiple recent RCTs (BP-TARGET, ENCHANTED-2, OPTIMAL-BP) showed worse outcomes with aggressive BP lowering after reperfusion.',
+      'Target: <180/105 first 24 h. Permissive otherwise. The brain just got reperfused — don\'t starve it again.',
+      'This is opposite of the ICH reflex. Different physiology, different rules.'
+    ]
+  },
+  {
+    id:'todds', title:'Stroke mimic — Todd\'s paralysis', difficulty:'medium',
+    presentation:'62M with witnessed generalized tonic-clonic seizure 30 min ago, now with R hemiparesis. Slowly improving on exam. PMH epilepsy on lamotrigine, recently subtherapeutic. NCCT pending.',
+    setup:{
+      age:'62', cc:'R hemiparesis after witnessed seizure',
+      sbp:'152', dbp:'88', glucose:'102',
+      lkw:{type:'known', time:hoursAgo(0.5), disc:hoursAgo(0.5)},
+      cortical:{gazeDeviation:'no', aphasia:'no', neglect:'no', denseHemi:'no'},
+      nihss:{'5b':2,'6b':1,'4':1}, // 4
+      mimic:{seizure:'yes', primaryStroke:'no'}
+    },
+    expected:{
+      windowBucket:'standard', lvoSuspicion:'low',
+      tnkEligible:false, // mimic
+      mtCandidate:false, hemorrhage:false, isMimic:true
+    },
+    teaching:[
+      'Witnessed seizure + post-event focal deficit that is improving = Todd\'s paralysis, until proven otherwise.',
+      'However: stroke can cause seizure, and you cannot tell from history alone. CTA + MRI if available, or CTP. If imaging is negative and the deficit resolves, mimic confirmed.',
+      'In real practice, if the deficit is improving rapidly and imaging is negative, hold TNK. If deficit is stable/worsening, image aggressively and treat as stroke until ruled out.',
+      'TNK in a true mimic is largely safe (low ICH risk) but not zero — and unnecessary cost and risk. Get the imaging.'
+    ]
+  },
+  {
+    id:'ich-bp', title:'ICH on NCCT — BP management', difficulty:'medium',
+    presentation:'58M with sudden severe headache, vomiting, and L hemiparesis 1 h ago. BP 198/110 on arrival. NCCT shows R basal ganglia hemorrhage, ~25 mL, no IVH. On no anticoag.',
+    setup:{
+      age:'58', cc:'Headache, vomiting, L hemiparesis',
+      sbp:'198', dbp:'110', glucose:'138',
+      lkw:{type:'known', time:hoursAgo(1), disc:hoursAgo(1)},
+      cortical:{gazeDeviation:'no', aphasia:'no', neglect:'no', denseHemi:'yes'},
+      nihss:{'1a':1,'4':2,'5a':3,'6a':2,'8':1}, // 9
+      img:{ncct:'ich', cta:'pending', ctp:'na'},
+      mimic:{primaryStroke:'yes'}
+    },
+    expected:{
+      windowBucket:'standard', hemorrhage:true,
+      tnkEligible:false, mtCandidate:false,
+      bpTarget:'130-150', isICH:true
+    },
+    teaching:[
+      'NCCT shows hemorrhage → divert to ICH pathway. NO TNK. NO MT (MT is for ischemic).',
+      'BP target: SBP 130–150. Avoid <110. Use IV labetalol or nicardipine drip.',
+      'INTERACT-2: target <140 modestly beneficial. ATACH-II: aggressive (<140) showed more renal injury, no clinical benefit. Current consensus: moderate lowering.',
+      'No anticoag in this case → no reversal. If on warfarin: 4F-PCC + vitamin K. If on DOAC: idarucizumab (dabig) or andexanet/PCC (Xa).',
+      'CTA can still be useful — look for spot sign (predicts expansion) and rule out underlying vascular lesion. NSGY consult for hematoma >30 mL or with mass effect.',
+      'Disposition: NeuroICU.'
+    ]
+  }
+];
+
+// helper for vignettes
+function hoursAgo(h){
+  const d = new Date(Date.now() - h*3600*1000);
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+// ============================================================
+// Drill banks
+// ============================================================
+const DRILLS = {
+  lvo: {
+    title:'LVO suspicion',
+    items:[
+      {q:'68F, sudden R hemiparesis, gaze L, global aphasia, NIHSS 16. LVO suspicion?', opts:['High','Moderate','Low'], a:0,
+        e:'NIHSS ≥6 + multiple cortical signs (gaze, aphasia) + dense hemiparesis = HIGH. Order CTA + CTP regardless of LKW.'},
+      {q:'45M with isolated mild dysarthria and facial droop, NIHSS 2. LVO suspicion?', opts:['High','Moderate','Low'], a:2,
+        e:'NIHSS <6, no cortical signs = LOW. CTA still reasonable but lower yield. This is more likely a small-vessel/lacunar event.'},
+      {q:'70F with R arm weakness (4/5) and mild aphasia, NIHSS 5. LVO suspicion?', opts:['High','Moderate','Low'], a:1,
+        e:'NIHSS <6 with one cortical sign (aphasia) = MODERATE. CTA recommended. Aphasia at any NIHSS warrants CTA — even mild stroke can have LVO.'},
+      {q:'62M with vertigo, ataxia, dysarthria, NIHSS 4. Suspicion of stroke and LVO?', opts:['Anterior LVO likely','Posterior — image despite low NIHSS','Likely peripheral vertigo, no imaging'], a:1,
+        e:'NIHSS underscores posterior circulation. Vertigo + ataxia + dysarthria = posterior syndrome. CTA + MRI mandatory regardless of NIHSS — basilar occlusion is high-stakes.'},
+      {q:'58F with L hemineglect, gaze R, dense L hemiparesis, NIHSS 12. LVO suspicion?', opts:['High','Moderate','Low'], a:0,
+        e:'Two cortical signs (neglect + gaze) + dense hemiparesis + NIHSS ≥6 = HIGH. R MCA distribution, likely M1.'},
+      {q:'40M with pure motor R hemiparesis, NIHSS 6. LVO suspicion?', opts:['High','Moderate','Low'], a:1,
+        e:'NIHSS ≥6 but no cortical signs = MODERATE. Could be LVO but also lacunar (pure motor is classic lacunar syndrome). CTA helps distinguish.'}
+    ]
+  },
+  window: {
+    title:'Window classification',
+    items:[
+      {q:'LKW 2 hours ago, deficit witnessed at onset. Window?', opts:['Standard (≤4.5h)','Extended (4.5-24h)','Wake-up','Out of window'], a:0,
+        e:'2 h is well within standard 4.5h window. TNK is Class 1 if otherwise eligible.'},
+      {q:'Patient went to bed at 23:00 normal, woke at 07:00 with deficit. Window?', opts:['Standard','Extended','Wake-up / unknown LKW','Out of window'], a:2,
+        e:'Wake-up. Discovery time is upper bound but treatment depends on imaging selection: DWI/FLAIR mismatch for IVT; CTP mismatch for MT.'},
+      {q:'LKW 8 hours ago, NIHSS 14, anterior LVO on CTA. Window for MT?', opts:['Out of window','Extended (6-24h, MT Class 1 if mismatch)','Standard'], a:1,
+        e:'6–24 h with LVO + perfusion mismatch = Class 1 MT (DAWN/DEFUSE-3 era). Confirm CTP/MRI mismatch.'},
+      {q:'LKW 12 hours ago, ASPECTS 4, age 68, NIHSS 12. MT?', opts:['No, ASPECTS too low','Yes, large-core pathway','No, out of window','Yes, standard pathway'], a:1,
+        e:'2026 update: ASPECTS 3-5, age <80, NIHSS ≥6, ≤24h → MT Class 1 (SELECT2, ANGEL-ASPECT). Old "ASPECTS ≥6 only" is outdated.'},
+      {q:'LKW unknown (found down). NIHSS 18, gaze deviation. CTA shows R M1 occlusion. CTP shows mismatch. MT?', opts:['No, LKW unknown disqualifies','Yes, imaging selects','Only if MRI confirms'], a:1,
+        e:'Unknown LKW does NOT disqualify. CTP mismatch + LVO selects for MT in extended/unknown window. WAKE-UP and DAWN logic.'}
+    ]
+  },
+  mimic: {
+    title:'Stroke vs mimic',
+    items:[
+      {q:'Witnessed generalized seizure, then R hemiparesis, slowly improving. Most likely?', opts:['Stroke, treat with TNK','Todd\'s paralysis (mimic)','SAH'], a:1,
+        e:'Witnessed seizure + improving focal deficit = Todd\'s. Image to confirm no stroke, but hold TNK if deficit resolving and imaging negative.'},
+      {q:'Glucose 38 mg/dL, AMS, R hemiparesis. Next step?', opts:['Activate stroke code, give TNK','Give D50, recheck exam','CT first then decide'], a:1,
+        e:'Hypoglycemia is the most common stroke mimic. Treat first, recheck. If deficit persists after correction, image and treat as stroke.'},
+      {q:'Older patient with fluctuating AMS, no focal deficit, fever, UA pending. Most likely?', opts:['Posterior stroke','UTI / delirium (mimic)','TIA'], a:1,
+        e:'AMS without focal deficit + fever + age = mimic until proven otherwise. Posterior stroke can mimic this but usually has crossed signs or ataxia.'},
+      {q:'Known migraine with aura, slowly progressive R-sided numbness then weakness over 30 min, headache. Most likely?', opts:['MCA stroke','Migraine with aura (mimic)','Conversion'], a:1,
+        e:'Slow march of symptoms over minutes is classic migraine aura. Stroke is sudden. Still, image when uncertain — atypical migraine vs stroke is a real ED dilemma.'},
+      {q:'40F with give-way weakness, non-anatomic distribution, normal reflexes, normal cranial nerves, NIHSS 8. Most likely?', opts:['Functional / conversion','Cortical stroke','Lacunar'], a:0,
+        e:'Non-anatomic distribution + give-way weakness + intact reflexes/CN = functional. Hoover\'s sign helps. Image to be sure but TNK has real risk in mimics.'}
+    ]
+  },
+  bp: {
+    title:'BP thresholds',
+    items:[
+      {q:'Pre-TNK BP target?', opts:['<140/90','<160/100','<185/110','<200/120'], a:2,
+        e:'Pre-IVT: <185/110. Treat with labetalol or nicardipine if higher. Persistent uncontrolled BP = contraindication.'},
+      {q:'Post-TNK / post-EVT in first 24 h, target?', opts:['<140/90','<180/105','<200/110','Permissive'], a:1,
+        e:'Post-thrombolysis or post-EVT: <180/105 for 24h.'},
+      {q:'After successful EVT with reperfusion, intensive SBP <140 — what does 2026 guideline say?', opts:['Recommended','Class 2b','Class III — harm','Reasonable'], a:2,
+        e:'2026 KEY: Pushing SBP <140 after successful reperfusion is HARMFUL. Class III. Maintain <180/105.'},
+      {q:'ICH BP target?', opts:['<140/90','<160/100','SBP 130-150 (avoid <110)','<200/110'], a:2,
+        e:'ICH: SBP 130-150 if presenting >150. Avoid <110. INTERACT-2/ATACH-II support moderate lowering, not aggressive.'},
+      {q:'SAH pre-securing aneurysm, BP target?', opts:['<140','<160','<180','<200'], a:1,
+        e:'SAH pre-securing: SBP <160 (some institutions <140). Balance rebleed risk vs perfusion.'},
+      {q:'Glucose target during AIS treatment per 2026?', opts:['80-130 (tight)','140-180','Avoid <60 and >180','>200 acceptable'], a:2,
+        e:'2026: do NOT tight-control 80-130 (hypoglycemia risk outweighs benefit). Treat <60 (some institutions <70) and avoid >180.'}
+    ]
+  },
+  contra: {
+    title:'TNK contraindications',
+    items:[
+      {q:'62M with stroke 4 weeks ago, now NIHSS 8 new event within 2h LKW. TNK?', opts:['Yes — within window','No — recent stroke <3mo','Yes if ASPECTS >6'], a:1,
+        e:'Stroke <3 months is an absolute contraindication. Refer to MT pathway if LVO; otherwise medical management.'},
+      {q:'70F on apixaban, last dose 60 h ago, NIHSS 14, within 3h LKW. TNK?', opts:['No — DOAC always excludes','Yes — last dose >48h','Need anti-Xa first'], a:1,
+        e:'DOAC <48h is contraindication. >48h with no other concerns → TNK is reasonable. Anti-Xa can help if uncertain timing.'},
+      {q:'INR 1.9 on warfarin, NIHSS 10, within 2h LKW. TNK?', opts:['Yes','No — INR >1.7','Reverse first then TNK'], a:1,
+        e:'INR >1.7 is absolute contraindication. Refer to MT pathway if LVO.'},
+      {q:'Platelets 80k, NIHSS 12, within 3h LKW. TNK?', opts:['Yes','No — plt <100k','Transfuse first'], a:1,
+        e:'Platelets <100k absolute contraindication. MT pathway if LVO.'},
+      {q:'Recent CABG 6 weeks ago, NIHSS 15 with LVO, within 2h LKW. TNK?', opts:['Yes','No — recent major surgery (relative)','Only if surgeon clears'], a:1,
+        e:'Recent major surgery is relative contraindication; risk-benefit discussion. Often pursued if disabling deficit. MT alone is safer option.'},
+      {q:'BP 200/110 unresponsive to two doses labetalol. NIHSS 14, 2h LKW. TNK?', opts:['Yes — within window','No — refractory hypertension','Try nicardipine drip first'], a:2,
+        e:'Refractory HTN despite treatment is contraindication, but try nicardipine drip first — many achieve target. If still uncontrolled, TNK is excluded. MT may still be option.'}
+    ]
+  },
+  disabling: {
+    title:'Disabling vs non-disabling',
+    items:[
+      {q:'NIHSS 3, isolated expressive aphasia in a teacher. TNK?', opts:['Yes — disabling','No — NIHSS too low','DAPT only'], a:0,
+        e:'Aphasia is disabling at any NIHSS. 2026: thrombolyze any disabling deficit regardless of NIHSS. Teacher\'s occupation reinforces this.'},
+      {q:'NIHSS 4, mild facial droop + mild dysarthria, intact language, no motor. TNK?', opts:['Yes','No — non-disabling, give DAPT','Watch and wait'], a:1,
+        e:'Mild non-disabling features → DAPT (PRISMS). Non-disabling = preserved ADLs and occupational function.'},
+      {q:'NIHSS 2, isolated visual neglect. TNK?', opts:['Yes — disabling','No — DAPT','Image first then decide'], a:0,
+        e:'Visual neglect is disabling (driving, daily function). Treat.'},
+      {q:'NIHSS 5, mild hand weakness, no other deficits, retired patient. TNK?', opts:['Yes','Borderline — assess functional impact','No — non-disabling'], a:1,
+        e:'Borderline. "Disabling" is patient-specific — what does this person need to do? If hand needed for ADLs, treat. If pure mild weakness without functional impact, DAPT.'},
+      {q:'NIHSS 1, isolated mild dysarthria, surgeon. TNK?', opts:['Yes — occupation-disabling','No — NIHSS 1 too low','DAPT'], a:0,
+        e:'Surgeon needs precise speech for OR communication and patient interaction. Occupation-specific disability = treat. Always ask what they do.'}
+    ]
+  }
+};
+
+// ============================================================
+// Tab navigation
+// ============================================================
+function showTab(name){
+  $$('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.tab===name ? 'true':'false'));
+  $$('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
+  S.activeTab = name;
+  save();
+  if(name==='note') compileNote();
+  $('#nihss-pill').style.display = (name==='exam') ? 'block':'none';
+}
+
+// ============================================================
+// Mode
+// ============================================================
+function setMode(m){
+  S.mode = m;
+  document.body.classList.toggle('sim-mode', m==='sim');
+  $('#mode-live').classList.toggle('active', m==='live');
+  $('#mode-sim').classList.toggle('active', m==='sim');
+  $('#mode-live').setAttribute('aria-selected', m==='live');
+  $('#mode-sim').setAttribute('aria-selected', m==='sim');
+  // Open all teaching cards in sim
+  $$('.teach').forEach(t=>{
+    if(m==='sim') t.classList.add('open'); else t.classList.remove('open');
+  });
+  save();
+}
+
+// ============================================================
+// Timer
+// ============================================================
+let timerInterval = null;
+function paintTimer(){
+  const sec = Math.floor(S.timer.elapsed/1000);
+  $('#timer').textContent = pad2(Math.floor(sec/60))+':'+pad2(sec%60);
+}
+function startTimer(){
+  if(S.timer.running) return;
+  S.timer.running = true;
+  S.timer.t0 = Date.now() - S.timer.elapsed;
+  timerInterval = setInterval(()=>{ S.timer.elapsed = Date.now()-S.timer.t0; paintTimer(); }, 250);
+  save();
+}
+function stopTimer(){
+  S.timer.running = false;
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  save();
+}
+function resetTimer(){
+  stopTimer();
+  S.timer.elapsed = 0;
+  paintTimer();
+  save();
+}
+
+// ============================================================
+// Triage / vitals
+// ============================================================
+function paintTriage(){
+  $('#age').value = S.age || '';
+  $('#cc').value = S.cc || '';
+  $('#sbp').value = S.sbp || '';
+  $('#dbp').value = S.dbp || '';
+  $('#glucose').value = S.glucose || '';
+  paintBP(); paintGlucose(); paintMimic();
+  // bind segs
+  Object.keys(S.mimic).forEach(k=>{
+    const seg = document.querySelector(`[data-mimic="${k}"]`);
+    if(seg) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===S.mimic[k]));
+  });
+}
+function paintBP(){
+  const sbp = parseInt(S.sbp||'0',10), dbp = parseInt(S.dbp||'0',10);
+  const el = $('#bp-badge');
+  if(!S.sbp || !S.dbp){ el.textContent='—'; el.className='badge neutral'; return; }
+  if(sbp < 185 && dbp < 110){ el.textContent='OK for TNK'; el.className='badge ok'; }
+  else if(sbp >= 220 || dbp >= 120){ el.textContent='Hypertensive emergency'; el.className='badge danger'; }
+  else { el.textContent='Above TNK target'; el.className='badge warn'; }
+  paintTNK();
+}
+function paintGlucose(){
+  const g = parseInt(S.glucose||'0',10);
+  const el = $('#glu-badge');
+  if(!S.glucose){ el.textContent='—'; el.className='badge neutral'; return; }
+  if(g < 60){ el.textContent='Low — treat'; el.className='badge danger'; }
+  else if(g > 200){ el.textContent='Hyperglycemia'; el.className='badge warn'; }
+  else { el.textContent='OK'; el.className='badge ok'; }
+}
+function paintMimic(){
+  const m = S.mimic;
+  const flags = [];
+  if(m.amsOnly==='yes') flags.push('AMS without focal deficit (mimic-likely)');
+  if(m.fluctuating==='yes') flags.push('Fluctuating exam');
+  if(m.fever==='yes') flags.push('Fever — consider infection/UTI');
+  if(m.seizure==='yes') flags.push('Recent seizure — Todd\'s paralysis');
+  if(m.migraine==='yes') flags.push('Migraine with aura history');
+  if(m.metabolic==='yes') flags.push('Metabolic suspicion');
+  const el = $('#mimic-banner');
+  if(flags.length){
+    el.style.display='block';
+    el.innerHTML = '<b>Mimic considerations:</b> ' + flags.join('; ') + '. Image, but keep the differential open.';
+  } else {
+    el.style.display='none';
+  }
+}
+
+// ============================================================
+// NIHSS + LVO suspicion
+// ============================================================
+function renderNIHSS(){
+  const root = $('#nihss-items'); root.innerHTML = '';
+  NIHSS.forEach(it=>{
+    const w = document.createElement('div'); w.className='nihss-item'; w.dataset.id = it.id;
+    const h = document.createElement('h4');
+    h.textContent = it.name + (it.cortical ? ' ★' : '');
+    w.appendChild(h);
+    const chips = document.createElement('div'); chips.className='chips';
+    for(let s=0; s<=it.max; s++){
+      const b = document.createElement('button'); b.type='button';
+      b.className = 'chip' + (it.cortical ? ' cortical':'');
+      b.textContent = s; b.dataset.score = s; b.tabIndex = 0;
+      b.addEventListener('click', e=>{ e.stopPropagation(); setNIHSS(it.id, s); });
+      chips.appendChild(b);
     }
+    w.appendChild(chips);
+    w.addEventListener('click', ()=>{
+      const cur = Number(S.nihss[it.id]||0);
+      setNIHSS(it.id, (cur+1) > it.max ? 0 : cur+1);
+    });
+    root.appendChild(w);
+  });
+  paintNIHSS();
+}
+function setNIHSS(id, val){
+  S.nihss[id] = val;
+  save(); paintNIHSS(); paintLVO();
+}
+function paintNIHSS(){
+  $$('#nihss-items .chip').forEach(c=>c.classList.remove('selected'));
+  NIHSS.forEach(it=>{
+    const v = Number(S.nihss[it.id]||0);
+    const row = document.querySelector(`.nihss-item[data-id="${it.id}"]`);
+    if(!row) return;
+    const chip = row.querySelector(`.chip[data-score="${v}"]`);
+    if(chip) chip.classList.add('selected');
+  });
+  $('#nihss-total').textContent = nihssTotal();
+}
+function nihssTotal(){
+  return NIHSS.reduce((s,it)=>s + Number(S.nihss[it.id]||0), 0);
+}
+function paintLVO(){
+  const total = nihssTotal();
+  const c = S.cortical;
+  const corticalCount = ['gazeDeviation','aphasia','neglect','denseHemi'].filter(k=>c[k]==='yes').length;
+  let level;
+  if(total >= 6 && corticalCount >= 1) level = 'high';
+  else if(corticalCount >= 2) level = 'high';
+  else if(total >= 6 || corticalCount === 1) level = 'moderate';
+  else level = 'low';
+  const el = $('#lvo-badge');
+  el.textContent = level.toUpperCase();
+  el.className = 'badge ' + (level==='high'?'danger':level==='moderate'?'warn':'ok');
+  $('#lvo-imaging-prompt').style.display = level==='high' ? 'block':'none';
+  // bind cortical segs reflect state
+  Object.keys(c).forEach(k=>{
+    const seg = document.querySelector(`[data-cortical="${k}"]`);
+    if(seg) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===c[k]));
+  });
+  S._lvoLevel = level;
+}
 
-    let intv=null;
-    function paintTimer(){
-      const sec=Math.floor(state.elapsed/1000), mm=Math.floor(sec/60), ss=sec%60;
-      $('#timer').textContent = pad2(mm)+':'+pad2(ss);
+// ============================================================
+// Window classification
+// ============================================================
+function paintWindow(){
+  const t = S.lkw.type;
+  // bind seg
+  document.querySelectorAll('[data-lkwtype] button').forEach(b=>b.classList.toggle('active', b.dataset.v===t));
+  $('#lkw-time').value = S.lkw.time || '';
+  $('#lkw-disc').value = S.lkw.disc || '';
+  $('#lkw-time-wrap').style.display = (t==='unknown') ? 'none' : 'flex';
+  let bucket = 'unknown';
+  let mins = null;
+  if(t==='known' && S.lkw.time){
+    mins = minutesSince(S.lkw.time);
+    if(mins != null){
+      if(mins <= 270) bucket = 'standard';
+      else if(mins <= 1440) bucket = 'extended';
+      else bucket = 'late';
     }
-    function startTimer(){ if(state.timerRunning) return; state.timerRunning=true; state.t0=Date.now()-state.elapsed; save(); intv=setInterval(()=>{ state.elapsed=Date.now()-state.t0; paintTimer(); }, 200); }
-    function stopTimer(){ if(!state.timerRunning) return; state.timerRunning=false; clearInterval(intv); intv=null; state.elapsed=Date.now()-state.t0; save(); }
-    function resetTimer(){ state.timerRunning=false; clearInterval(intv); intv=null; state.elapsed=0; save(); paintTimer(); }
+  } else if(t==='wakeup'){
+    bucket = 'wakeup';
+  } else if(t==='unknown'){
+    bucket = 'unknown';
+  }
+  S._windowBucket = bucket;
+  const el = $('#window-badge');
+  if(bucket==='standard'){ el.textContent = 'Standard ≤4.5 h ('+formatMins(mins)+')'; el.className='badge ok'; }
+  else if(bucket==='extended'){ el.textContent = 'Extended 4.5–24 h ('+formatMins(mins)+')'; el.className='badge warn'; }
+  else if(bucket==='late'){ el.textContent = '>24 h ('+formatMins(mins)+')'; el.className='badge danger'; }
+  else if(bucket==='wakeup'){ el.textContent = 'Wake-up'; el.className='badge info'; }
+  else { el.textContent = 'Unknown LKW'; el.className='badge info'; }
 
-    function minutesSince(HHMM){
-      if(!HHMM) return null;
-      const now=new Date(); const today=now.toISOString().split('T')[0];
-      let dt=new Date(`${today}T${HHMM}`);
-      if(dt>now) dt.setDate(dt.getDate()-1);
-      return Math.floor((now-dt)/60000);
+  // imaging strategy
+  const strat = $('#strategy-text');
+  if(bucket==='standard'){
+    strat.innerHTML = '<b>NCCT</b> mandatory. <b>CTA</b> if any LVO suspicion or NIHSS ≥6. <b>CTP</b> if planning extended-window decisions or LVO suspicion to characterize core/penumbra.';
+  } else if(bucket==='extended' || bucket==='late'){
+    strat.innerHTML = '<b>NCCT + CTA + CTP</b> mandatory. CTP mismatch qualifies extended-window MT (DAWN/DEFUSE-3) and large-core MT (SELECT2/ANGEL-ASPECT).';
+  } else if(bucket==='wakeup' || bucket==='unknown'){
+    strat.innerHTML = '<b>NCCT + CTA + MRI (DWI/FLAIR)</b> + CTP. DWI+/FLAIR− mismatch qualifies for IVT (WAKE-UP). CTP mismatch qualifies for MT.';
+  } else {
+    strat.textContent = 'Set window above.';
+  }
+  paintTNK();
+}
+function minutesSince(HHMM){
+  if(!HHMM) return null;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  let dt = new Date(`${today}T${HHMM}`);
+  if(dt > now) dt.setDate(dt.getDate()-1);
+  return Math.floor((now - dt)/60000);
+}
+function formatMins(m){
+  if(m==null) return '';
+  const h = Math.floor(m/60), mm = m%60;
+  return (h>0 ? h+'h ' : '') + mm + 'm';
+}
+
+// ============================================================
+// Imaging
+// ============================================================
+function paintImaging(){
+  ['ncct','cta','ctp','mri'].forEach(k=>{
+    const seg = document.querySelector(`[data-img="${k}"]`);
+    if(seg) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===S.img[k]));
+  });
+  $('#aspects').value = S.img.aspects || '';
+  // ASPECTS row visible if NCCT shows early changes or anywhere ischemic
+  $('#ncct-aspects-row').style.display = (S.img.ncct==='early' || S.img.ncct==='negative') ? 'flex' : 'none';
+  // ICH tab visibility
+  const isHem = (S.img.ncct==='ich' || S.img.ncct==='sah');
+  $('#tab-ich').style.display = isHem ? 'inline-block' : 'none';
+  // Imaging summary
+  const el = $('#imaging-summary');
+  let msgs = [];
+  if(isHem){
+    msgs.push('<b>Hemorrhage on NCCT — divert to ICH/SAH pathway.</b> Stop any thrombolysis discussion. Proceed to BP management & reversal.');
+    el.style.display='block'; el.className='alert danger'; el.innerHTML = msgs.join('<br>');
+  } else if(S.img.cta==='lvo-anterior' || S.img.cta==='lvo-basilar' || S.img.cta==='m2'){
+    if(S.img.cta==='lvo-basilar') msgs.push('<b>Basilar occlusion</b> — MT pathway. NIHSS ≥10 within 24h qualifies (Class 1).');
+    else if(S.img.cta==='lvo-anterior') msgs.push('<b>Anterior LVO</b> — MT candidate. Check ASPECTS, age, NIHSS, window for pathway selection.');
+    else if(S.img.cta==='m2') msgs.push('<b>M2/distal occlusion</b> — MT may still be reasonable. Discuss with IR.');
+    if(S.img.ctp==='mismatch') msgs.push('CTP mismatch: qualifies extended-window or large-core MT.');
+    if(S.img.mri==='mismatch') msgs.push('DWI/FLAIR mismatch: qualifies for IVT in wake-up/unknown LKW.');
+    el.style.display='block'; el.className='alert info'; el.innerHTML = msgs.join('<br>');
+  } else if(S.img.cta==='negative' && S.img.ncct==='negative'){
+    el.style.display='block'; el.className='alert ok'; el.innerHTML = 'No LVO. If TNK-eligible, proceed. MT not indicated.';
+  } else {
+    el.style.display='none';
+  }
+  paintTNK(); paintMT();
+}
+
+// ============================================================
+// TNK eligibility
+// ============================================================
+function paintTNK(){
+  // window status
+  const win = S._windowBucket;
+  const winEl = $('#tnk-window-status');
+  if(win==='standard'){ winEl.textContent='Yes'; winEl.className='badge ok'; }
+  else if(win==='extended' || win==='wakeup'){ winEl.textContent='Extended/wake-up — Class 2b or imaging-dependent'; winEl.className='badge warn'; }
+  else { winEl.textContent='No / unset'; winEl.className='badge danger'; }
+  // ncct
+  const ne = $('#tnk-ncct-status');
+  if(S.img.ncct==='negative' || S.img.ncct==='early'){ ne.textContent='Yes'; ne.className='badge ok'; }
+  else if(S.img.ncct==='ich' || S.img.ncct==='sah'){ ne.textContent='Hemorrhage — NO'; ne.className='badge danger'; }
+  else { ne.textContent='Pending'; ne.className='badge neutral'; }
+  // bp
+  const sbp = parseInt(S.sbp||'0',10), dbp = parseInt(S.dbp||'0',10);
+  const be = $('#tnk-bp-status');
+  if(!S.sbp || !S.dbp){ be.textContent='—'; be.className='badge neutral'; }
+  else if(sbp < 185 && dbp < 110){ be.textContent='OK'; be.className='badge ok'; }
+  else { be.textContent='Above target — control first'; be.className='badge danger'; }
+
+  // bind segs
+  document.querySelectorAll('[data-tnk]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk');
+    if(S.tnk[k]!=null) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===S.tnk[k]));
+  });
+  document.querySelectorAll('[data-tnk-crit]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk-crit');
+    seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===S.tnk[k]));
+  });
+  document.querySelectorAll('[data-tnk-abs]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk-abs');
+    seg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===S.tnk.abs[k]));
+  });
+
+  // decision banner
+  const banner = $('#tnk-decision');
+  const isHem = (S.img.ncct==='ich' || S.img.ncct==='sah');
+  const anyAbs = Object.values(S.tnk.abs).some(v=>v==='yes');
+  const bpOK = S.sbp && S.dbp && (sbp < 185 && dbp < 110);
+  const ageOK = S.tnk.age === 'yes';
+  const ncctOK = (S.img.ncct==='negative' || S.img.ncct==='early');
+  const winOK = (win==='standard');
+  const total = nihssTotal();
+  const disabling = S.tnk.disabling;
+  const isMimic = S.mimic.primaryStroke==='no';
+
+  let decision = null;
+  if(isHem){ decision = {cls:'ich', text:'NCCT shows hemorrhage → NO TNK. Proceed to ICH/SAH pathway.'}; }
+  else if(isMimic){ decision = {cls:'mimic', text:'Working diagnosis is mimic — TNK not indicated unless changed.'}; }
+  else if(disabling==='no' && total <= 5){ decision = {cls:'dapt', text:'Non-disabling minor stroke (NIHSS '+total+') → DAPT (per PRISMS), not TNK.'}; }
+  else if(anyAbs){ decision = {cls:'mimic', text:'Absolute contraindication present → NO TNK. Consider MT if LVO present.'}; }
+  else if(!ageOK){ decision = {cls:'mimic', text:'Age &lt;18 — pediatric pathway, not adult TNK protocol.'}; }
+  else if(!ncctOK){ decision = {cls:'mimic', text:'NCCT pending or hemorrhage — TNK not yet eligible.'}; }
+  else if(!bpOK){ decision = {cls:'mimic', text:'BP not at target — control to <185/110 first, then reassess.'}; }
+  else if(winOK && (disabling==='yes' || total >= 6)){ decision = {cls:'tnk', text:'TNK eligible — give 0.25 mg/kg IV bolus per order set (max 25 mg).'}; }
+  else if(win==='extended' || win==='wakeup'){ decision = {cls:'both', text:'Out of standard window — extended-window TNK is Class 2b only if MT not feasible. Confirm imaging mismatch and consult attending. MT preferred if LVO present.'}; }
+  else if(disabling==='unknown'){ decision = {cls:'mimic', text:'Determine if deficit is disabling before deciding.'}; }
+  else { decision = {cls:'mimic', text:'Insufficient data for TNK decision.'}; }
+
+  banner.style.display='block';
+  banner.className = 'pathway-banner ' + decision.cls;
+  banner.innerHTML = decision.text;
+  S._tnkDecision = decision.cls;
+}
+
+// ============================================================
+// MT
+// ============================================================
+function paintMT(){
+  const cta = S.img.cta;
+  const ctp = S.img.ctp; const mri = S.img.mri;
+  const aspects = parseInt(S.img.aspects||'0',10);
+  const total = nihssTotal();
+  const win = S._windowBucket;
+  const ageVal = parseInt(S.age||'0',10);
+  const isHem = (S.img.ncct==='ich' || S.img.ncct==='sah');
+  const el = $('#mt-pathway-recommend');
+
+  const mismatchEl = $('#mt-mismatch-status');
+  if(ctp==='mismatch' || mri==='mismatch'){ mismatchEl.textContent='Yes'; mismatchEl.className='badge ok'; }
+  else if(ctp==='nomismatch' || mri==='nomismatch'){ mismatchEl.textContent='No mismatch'; mismatchEl.className='badge danger'; }
+  else { mismatchEl.textContent='Not done'; mismatchEl.className='badge neutral'; }
+
+  if(isHem){ el.style.display='block'; el.className='alert danger'; el.innerHTML='Hemorrhage — MT not indicated.'; S._mtPath = 'ich'; return; }
+  let path = null;
+  if(cta==='lvo-basilar' && total >= 10 && (win==='standard' || win==='extended' || win==='wakeup')){
+    path = {cls:'mt', text:'<b>Basilar pathway:</b> NIHSS ≥10 + basilar occlusion + within 24h → MT Class 1. Activate IR now.'};
+  } else if(cta==='lvo-anterior' && total >= 6){
+    if(aspects >= 6 && (win==='standard' || (win==='extended' && (ctp==='mismatch'||mri==='mismatch')))){
+      path = {cls:'mt', text:'<b>Standard MT pathway:</b> Anterior LVO + ASPECTS ≥6 + NIHSS ≥6 → MT Class 1.'};
+    } else if(aspects >= 3 && aspects <= 5 && ageVal && ageVal < 80 && (win==='standard' || win==='extended' || win==='wakeup')){
+      path = {cls:'mt', text:'<b>Large-core MT pathway (2026):</b> ASPECTS 3–5 + age &lt;80 + NIHSS ≥6 → MT Class 1 (SELECT2/ANGEL-ASPECT/TESLA).'};
+    } else if(win==='extended' && !(ctp==='mismatch'||mri==='mismatch')){
+      path = {cls:'both', text:'Extended window without confirmed perfusion mismatch — re-examine imaging or discuss with attending. MT may still be reasonable based on clinical judgment.'};
+    } else if(aspects && aspects < 3){
+      path = {cls:'ich', text:'ASPECTS &lt;3 — outcomes poor with MT. Discuss carefully; usually not pursued.'};
+    } else {
+      path = {cls:'both', text:'Anterior LVO present — confirm ASPECTS, age, window; pathway will resolve once data is complete.'};
     }
-    function paintLKN(){
-      const mins = minutesSince(state.lkn);
-      const el=$('#lkn-status');
-      if(mins==null){ el.style.display='none'; return; }
-      el.style.display='inline-block'; el.className='badge info';
-      if(mins<=270) el.classList.add('ok'); else if(mins<=1440) el.classList.add('warn'); else el.classList.add('danger');
-      const h=Math.floor(mins/60), m=mins%60; el.textContent = mins<=270? `Within 4.5h (${h>0?h+'h ':''}${m}m)` : mins<=1440? `Beyond 4.5h (${h>0?h+'h ':''}${m}m)` : `Late (${h>0?h+'h ':''}${m}m)`;
-      state.crit.lkw = (mins!=null && mins<=270) ? 'yes':'no';
-      save();
-    }
+  } else if(cta==='m2' && total >= 6){
+    path = {cls:'both', text:'M2/distal occlusion — MT can be reasonable, decision per IR.'};
+  } else if(cta==='negative'){
+    path = {cls:'mimic', text:'No LVO on CTA → MT not indicated.'};
+  } else {
+    path = null;
+  }
+  if(path){
+    el.style.display='block';
+    el.className = 'alert ' + (path.cls==='mt'?'ok':path.cls==='ich'?'danger':'info');
+    el.innerHTML = path.text;
+    S._mtPath = path.cls;
+  } else { el.style.display='none'; S._mtPath = null; }
+}
 
-    function paintCTA(){ $('#lvoBanner').style.display = state.cta==='lvo' ? 'block':'none'; }
+// ============================================================
+// Note
+// ============================================================
+function compileNote(){
+  const lines = [];
+  lines.push('STROKE CODE NOTE');
+  lines.push('================');
+  lines.push('Patient: [Patient]  MRN: [MRN]  DOB: [DOB]');
+  lines.push('Date/Time: ' + new Date().toLocaleString());
+  lines.push('');
+  lines.push('CC: ' + (S.cc||'—') + '   Age: ' + (S.age||'—'));
+  lines.push('');
+  lines.push('TIMING');
+  lines.push('  LKW: ' + (S.lkw.type==='unknown' ? 'Unknown' : S.lkw.time || '—') + (S.lkw.type==='wakeup' ? ' (wake-up; discovery '+(S.lkw.disc||'—')+')' : ''));
+  lines.push('  Window: ' + windowDescription());
+  lines.push('');
+  lines.push('VITALS');
+  lines.push('  BP: ' + (S.sbp||'—') + '/' + (S.dbp||'—') + '   Glucose: ' + (S.glucose||'—') + ' mg/dL');
+  lines.push('');
+  lines.push('EXAM');
+  lines.push('  NIHSS total: ' + nihssTotal());
+  const deficits = NIHSS.filter(it=>Number(S.nihss[it.id]||0) > 0)
+    .map(it=>it.short+'='+S.nihss[it.id]).join(', ');
+  if(deficits) lines.push('  Deficits: ' + deficits);
+  const cortFlags = ['gazeDeviation','aphasia','neglect','denseHemi'].filter(k=>S.cortical[k]==='yes');
+  if(cortFlags.length) lines.push('  Cortical signs: ' + cortFlags.join(', '));
+  lines.push('  LVO suspicion: ' + (S._lvoLevel||'—').toUpperCase());
+  lines.push('');
+  lines.push('IMAGING');
+  lines.push('  NCCT: ' + S.img.ncct + (S.img.aspects ? ' (ASPECTS '+S.img.aspects+')':''));
+  lines.push('  CTA: ' + S.img.cta);
+  if(S.img.ctp!=='na') lines.push('  CTP: ' + S.img.ctp);
+  if(S.img.mri!=='na') lines.push('  MRI DWI/FLAIR: ' + S.img.mri);
+  lines.push('');
+  const mimicFlags = Object.entries(S.mimic).filter(([k,v])=>v==='yes' && k!=='primaryStroke').map(([k])=>k);
+  if(mimicFlags.length) lines.push('MIMIC SCREEN: ' + mimicFlags.join(', '));
+  lines.push('PRIMARY DX: ' + (S.mimic.primaryStroke==='yes' ? 'Stroke' : 'Mimic / pending'));
+  lines.push('');
+  lines.push('IMPRESSION');
+  lines.push((S.note.impression||'[fill in]'));
+  lines.push('');
+  lines.push('PLAN');
+  lines.push((S.note.plan||'[fill in]'));
+  $('#note-output').value = lines.join('\n');
+}
+function windowDescription(){
+  const w = S._windowBucket;
+  if(w==='standard') return 'Standard ≤4.5 h';
+  if(w==='extended') return 'Extended 4.5–24 h';
+  if(w==='wakeup') return 'Wake-up';
+  if(w==='unknown') return 'Unknown LKW';
+  if(w==='late') return '>24 h';
+  return '—';
+}
+function copyText(t){
+  if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t));
+  else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta = document.createElement('textarea'); ta.value = t;
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+}
 
-    function paintBP(){
-      const sbp=parseInt(state.sbp||'0',10), dbp=parseInt(state.dbp||'0',10);
-      const el=$('#bp-status');
-      if(!state.sbp || !state.dbp){ el.style.display='none'; state.crit.bp='no'; save(); return; }
-      el.style.display='inline-block'; el.className='badge info';
-      const ok=(sbp<185 && dbp<110);
-      el.textContent = ok? 'BP ok' : 'BP high';
-      el.classList.add(ok? 'ok':'danger');
-      state.crit.bp = ok? 'yes':'no'; save();
-    }
+// ============================================================
+// Drill engine
+// ============================================================
+let drillState = null;
+function startDrill(name){
+  const d = DRILLS[name]; if(!d) return;
+  drillState = {name, idx:0, items:d.items, score:0};
+  $('#drill-menu').style.display='none';
+  $('#drill-active').style.display='block';
+  showDrill();
+}
+function showDrill(){
+  const it = drillState.items[drillState.idx];
+  $('#drill-progress').textContent = `${DRILLS[drillState.name].title} — Question ${drillState.idx+1} of ${drillState.items.length} (Score ${drillState.score})`;
+  $('#drill-prompt').textContent = it.q;
+  const opts = $('#drill-options'); opts.innerHTML = '';
+  it.opts.forEach((o,i)=>{
+    const b = document.createElement('button'); b.textContent = o;
+    b.addEventListener('click', ()=>answerDrill(i));
+    opts.appendChild(b);
+  });
+  $('#drill-explain').style.display='none';
+  $('#drill-next').style.display='none';
+}
+function answerDrill(i){
+  const it = drillState.items[drillState.idx];
+  const buttons = $('#drill-options').querySelectorAll('button');
+  buttons.forEach((b,idx)=>{
+    b.disabled = true;
+    if(idx===it.a) b.classList.add('correct');
+    else if(idx===i) b.classList.add('wrong');
+  });
+  if(i===it.a) drillState.score++;
+  $('#drill-explain').textContent = it.e;
+  $('#drill-explain').style.display='block';
+  $('#drill-next').style.display='inline-block';
+}
+function nextDrill(){
+  drillState.idx++;
+  if(drillState.idx >= drillState.items.length){
+    const total = drillState.items.length;
+    $('#drill-prompt').innerHTML = `Drill complete: <b>${drillState.score} / ${total}</b>`;
+    $('#drill-options').innerHTML = '';
+    $('#drill-explain').style.display='none';
+    $('#drill-next').style.display='none';
+  } else {
+    showDrill();
+  }
+}
+function exitDrill(){
+  drillState = null;
+  $('#drill-active').style.display='none';
+  $('#drill-menu').style.display='grid';
+}
 
-    const NIHSS=[
-      {id:'1a', name:'1a. Level of Consciousness', short:'LOC', max:3},
-      {id:'1b', name:'1b. Questions (Month, Age)', short:'LOC Qs', max:2},
-      {id:'1c', name:'1c. Commands (Close eyes, Make fist)', short:'LOC Cmds', max:2},
-      {id:'2',  name:'2. Best Gaze', short:'Gaze', max:2},
-      {id:'3',  name:'3. Visual Fields', short:'Visual', max:3},
-      {id:'4',  name:'4. Facial Palsy', short:'Facial', max:3},
-      {id:'5a', name:'5a. Motor — Left Arm', short:'L Arm', max:4},
-      {id:'5b', name:'5b. Motor — Right Arm', short:'R Arm', max:4},
-      {id:'6a', name:'6a. Motor — Left Leg', short:'L Leg', max:4},
-      {id:'6b', name:'6b. Motor — Right Leg', short:'R Leg', max:4},
-      {id:'7',  name:'7. Limb Ataxia', short:'Ataxia', max:2},
-      {id:'8',  name:'8. Sensory', short:'Sensory', max:2},
-      {id:'9',  name:'9. Language', short:'Language', max:3},
-      {id:'10', name:'10. Dysarthria', short:'Dysarthria', max:2},
-      {id:'11', name:'11. Extinction/Inattention', short:'Extinction', max:2},
-    ];
-    function renderNIHSS(){
-      const root=$('#nihssItems'); root.innerHTML='';
-      NIHSS.forEach((it)=>{
-        const wrap=document.createElement('div'); wrap.className='nihss-item'; wrap.setAttribute('data-id', it.id);
-        const title=document.createElement('h4'); title.textContent=it.name; wrap.appendChild(title);
-        const chips=document.createElement('div'); chips.className='chips'; wrap.appendChild(chips);
-        for(let s=0;s<=it.max;s++){
-          const btn=document.createElement('button'); btn.type='button'; btn.className='chip'; btn.textContent=s; btn.setAttribute('data-score', s); btn.setAttribute('tabindex','0');
-          btn.addEventListener('click', ()=> setNIHSS(it.id, s));
-          btn.addEventListener('keydown', (e)=>{ if(/^[0-4]$/.test(e.key)){ const k=Number(e.key); if(k<=it.max) setNIHSS(it.id, k); } });
-          chips.appendChild(btn);
-        }
-        wrap.addEventListener('click', (e)=>{
-          if(e.target.classList.contains('chip')) return;
-          const cur=Number(state.nihss[it.id]??0);
-          const next=(cur+1)>it.max?0:(cur+1);
-          setNIHSS(it.id, next);
-        });
-        root.appendChild(wrap);
-      });
-      paintNIHSSSelection(); paintNIHSSTotal();
-    }
-    function setNIHSS(id,val){ state.nihss[id]=val; save(); paintNIHSSSelection(); paintNIHSSTotal(); }
-    function paintNIHSSSelection(){
-      $$('#nihssItems .chip').forEach(ch=>ch.classList.remove('selected'));
-      NIHSS.forEach(it=>{
-        const v=Number(state.nihss[it.id]??0);
-        const row = document.querySelector(`.nihss-item[data-id="${it.id}"]`);
-        if(!row) return;
-        const btn = row.querySelector(`.chip[data-score="${v}"]`);
-        if(btn) btn.classList.add('selected');
-      });
-    }
-    function nihssTotal(){ return NIHSS.reduce((a,it)=>a + Number(state.nihss[it.id]||0), 0) }
-    function paintNIHSSTotal(){ $('#nihss-score').textContent = nihssTotal(); }
+// ============================================================
+// Sim engine
+// ============================================================
+function renderSimList(){
+  const list = $('#sim-case-list'); list.innerHTML = '';
+  VIGNETTES.forEach(v=>{
+    const card = document.createElement('div'); card.className='drill-card'; card.dataset.case = v.id;
+    card.innerHTML = `<h4>${v.title} <span class="pill">${v.difficulty}</span></h4><div class="muted small">${v.presentation.slice(0,140)}…</div>`;
+    card.addEventListener('click', ()=>loadCase(v.id));
+    list.appendChild(card);
+  });
+}
+function loadCase(id){
+  const v = VIGNETTES.find(x=>x.id===id); if(!v) return;
+  // reset state, apply vignette setup
+  S = freshState();
+  S.mode = 'sim'; setMode('sim');
+  S.sim.caseId = id; S.sim.started = Date.now(); S.sim.decisions = [];
+  // Apply scalar fields only (avoid shallow clobbering of nested objects)
+  ['age','cc','sbp','dbp','glucose'].forEach(k=>{
+    if(v.setup[k] !== undefined) S[k] = v.setup[k];
+  });
+  // Deep-merge nested fields so freshState() defaults are preserved
+  if(v.setup.lkw) S.lkw = {...S.lkw, ...v.setup.lkw};
+  if(v.setup.cortical) S.cortical = {...S.cortical, ...v.setup.cortical};
+  if(v.setup.mimic) S.mimic = {...S.mimic, ...v.setup.mimic};
+  if(v.setup.img) S.img = {...S.img, ...v.setup.img};
+  if(v.setup.tnk) S.tnk = {...S.tnk, ...v.setup.tnk, abs: {...S.tnk.abs, ...(v.setup.tnk.abs||{})}};
+  S.nihss = v.setup.nihss || {};
+  save();
+  // show case card
+  $('#sim-case-list').style.display='none';
+  $('#sim-active').style.display='block';
+  $('#sim-case-card').innerHTML = `
+    <h4>${v.title} <span class="pill">${v.difficulty}</span></h4>
+    <div class="meta">${(v.expected.windowBucket?'<span class="badge info">window: '+v.expected.windowBucket+'</span>':'')}</div>
+    <div class="vignette">${v.presentation}</div>
+    <div class="muted small" style="margin-top:8px">Case loaded. Walk through tabs 1 → 7 to make your decisions, then end the case.</div>
+  `;
+  $('#sim-scorecard').style.display='none';
+  // refresh all UI
+  refreshAllUI();
+  showFeedback('Case loaded: ' + v.title, 'Walk through the tabs to make decisions. The teaching points appear after each major step. End the case for your scorecard.');
+}
+function endSim(){
+  if(!S.sim.caseId) return;
+  const v = VIGNETTES.find(x=>x.id===S.sim.caseId); if(!v) return;
+  S.sim.ended = Date.now();
+  const elapsed = Math.round((S.sim.ended - S.sim.started)/1000);
+  // build scorecard
+  const rows = [];
+  // window
+  if(v.expected.windowBucket){
+    const got = S._windowBucket;
+    rows.push({label:'Window classification', got: got||'—', want: v.expected.windowBucket, ok: got===v.expected.windowBucket});
+  }
+  // lvo suspicion
+  if(v.expected.lvoSuspicion){
+    const got = S._lvoLevel;
+    rows.push({label:'LVO suspicion', got: got||'—', want: v.expected.lvoSuspicion, ok: got===v.expected.lvoSuspicion});
+  }
+  // hemorrhage recognition
+  if(v.expected.hemorrhage !== undefined){
+    const got = (S.img.ncct==='ich'||S.img.ncct==='sah');
+    rows.push({label:'Hemorrhage on NCCT?', got: got?'Yes':'No', want: v.expected.hemorrhage?'Yes':'No', ok: got===v.expected.hemorrhage});
+  }
+  // tnk decision
+  if(v.expected.tnkEligible !== undefined){
+    const got = S._tnkDecision==='tnk';
+    let want;
+    if(v.expected.tnkEligible===true) want='TNK';
+    else if(v.expected.tnkEligible===false) want='No TNK';
+    else want = 'Imaging-dependent';
+    rows.push({label:'TNK decision', got: S._tnkDecision||'—', want, ok:
+      (v.expected.tnkEligible===true && got) ||
+      (v.expected.tnkEligible===false && !got) ||
+      (v.expected.tnkEligible==='imaging-dependent')
+    });
+  }
+  // mt
+  if(v.expected.mtCandidate !== undefined){
+    const got = S._mtPath==='mt';
+    rows.push({label:'MT candidate?', got: got?'Yes':'No',
+      want: v.expected.mtCandidate===true?'Yes': v.expected.mtCandidate===false?'No':'imaging-dependent',
+      ok: (v.expected.mtCandidate===true && got) || (v.expected.mtCandidate===false && !got) || (typeof v.expected.mtCandidate==='string')});
+  }
+  // is mimic / ich correctness
+  if(v.expected.isMimic){
+    const got = S.mimic.primaryStroke==='no';
+    rows.push({label:'Recognized as mimic?', got: got?'Yes':'No', want:'Yes', ok: got});
+  }
+  if(v.expected.isICH){
+    const got = (S.img.ncct==='ich');
+    rows.push({label:'Recognized ICH pathway?', got: got?'Yes':'No', want:'Yes', ok: got});
+  }
+  const score = rows.filter(r=>r.ok).length;
+  const total = rows.length;
+  let html = `<div class="scorecard"><h3>Case scorecard: ${v.title}</h3>`;
+  html += `<p class="muted small">Time: ${Math.floor(elapsed/60)}m ${elapsed%60}s &nbsp;•&nbsp; Score: <b>${score} / ${total}</b></p>`;
+  rows.forEach(r=>{
+    html += `<div class="sc-row ${r.ok?'correct':'wrong'}"><span>${r.label}</span><span>${r.ok?'✓':'✗'} got: ${r.got} (expected: ${r.want})</span></div>`;
+  });
+  html += '<h4 style="margin-top:14px">Teaching points</h4><ol style="padding-left:18px;font-size:13px">';
+  v.teaching.forEach(t=>{ html += `<li style="margin-bottom:6px">${t}</li>`; });
+  html += '</ol></div>';
+  $('#sim-scorecard').innerHTML = html;
+  $('#sim-scorecard').style.display='block';
+}
+function exitSim(){
+  S.sim.caseId = null;
+  $('#sim-case-list').style.display='grid';
+  $('#sim-active').style.display='none';
+}
+function showFeedback(title, body){
+  if(S.mode !== 'sim') return;
+  $('#sim-feedback-title').textContent = title;
+  $('#sim-feedback-body').innerHTML = '<p>'+body+'</p>';
+  $('#sim-feedback').classList.add('show');
+}
 
-    function paintAnticoag(){ $('#last-dose-wrap').style.display = state.ac==='yes' ? 'flex':'none'; }
+// ============================================================
+// Refresh all UI
+// ============================================================
+function refreshAllUI(){
+  paintTriage();
+  paintLVO();
+  paintWindow();
+  paintImaging();
+  paintTNK();
+  paintMT();
+  compileNote();
+  paintNIHSS();
+}
 
-    function paintEligibility(){
-      const coreOK = ['age','clinical','lkw','ct','bp'].every(k=>state.crit[k]==='yes');
-      const noAbs = Object.values(state.abs).every(v=>v==='no');
-      const labsOK = Object.values(state.labs).every(v=>v==='yes');
-      const b=$('#elig-banner'); b.style.display='block';
-      if(coreOK && noAbs && labsOK){
-        b.textContent='Likely TNK-eligible — proceed per protocol and dosing';
-        b.className='block';
-      }else{
-        let reasons=[];
-        if(!coreOK) reasons.push('core criteria');
-        if(!noAbs) reasons.push('absolute contraindication');
-        if(!labsOK) reasons.push('labs unavailable');
-        b.textContent='Not yet TNK-eligible or missing data ('+reasons.join(', ')+')';
-        b.className='block muted';
+// ============================================================
+// Bindings
+// ============================================================
+function bindAll(){
+  // mode
+  $('#mode-live').addEventListener('click', ()=>setMode('live'));
+  $('#mode-sim').addEventListener('click', ()=>{ setMode('sim'); showTab('sim'); });
+  // timer
+  $('#btn-start').addEventListener('click', startTimer);
+  $('#btn-stop').addEventListener('click', stopTimer);
+  $('#btn-reset-timer').addEventListener('click', resetTimer);
+  $('#btn-reset-case').addEventListener('click', ()=>{
+    if(!confirm('Reset the entire case? This clears all entered data.')) return;
+    localStorage.removeItem(KEY);
+    location.reload();
+  });
+  // tabs
+  $$('.tab').forEach(t=>t.addEventListener('click', ()=>showTab(t.dataset.tab)));
+  // teach toggles (only in live mode; sim mode shows them open)
+  $$('.teach-head').forEach(h=>h.addEventListener('click', ()=>{
+    if(S.mode==='sim') return;
+    h.parentElement.classList.toggle('open');
+  }));
+  // continue button
+  $$('[data-go]').forEach(b=>b.addEventListener('click', ()=>showTab(b.dataset.go)));
+  // triage inputs
+  $('#age').addEventListener('input', e=>{ S.age = e.target.value; save(); });
+  $('#cc').addEventListener('input', e=>{ S.cc = e.target.value; save(); });
+  $('#sbp').addEventListener('input', e=>{ S.sbp = e.target.value; save(); paintBP(); });
+  $('#dbp').addEventListener('input', e=>{ S.dbp = e.target.value; save(); paintBP(); });
+  $('#glucose').addEventListener('input', e=>{ S.glucose = e.target.value; save(); paintGlucose(); });
+  // mimic segs
+  $$('[data-mimic]').forEach(seg=>{
+    const k = seg.getAttribute('data-mimic');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.mimic[k] = b.dataset.v; save(); paintMimic(); paintTNK();
+    }));
+  });
+  // cortical segs
+  $$('[data-cortical]').forEach(seg=>{
+    const k = seg.getAttribute('data-cortical');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.cortical[k] = b.dataset.v; save(); paintLVO();
+    }));
+  });
+  // lkw
+  $$('[data-lkwtype] button').forEach(b=>b.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-lkwtype] button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); S.lkw.type = b.dataset.v; save(); paintWindow();
+  }));
+  $('#lkw-time').addEventListener('input', e=>{ S.lkw.time = e.target.value; save(); paintWindow(); });
+  $('#lkw-disc').addEventListener('input', e=>{ S.lkw.disc = e.target.value; save(); });
+  $('#lkw-now').addEventListener('click', ()=>{
+    const n = new Date();
+    S.lkw.time = pad2(n.getHours())+':'+pad2(n.getMinutes());
+    $('#lkw-time').value = S.lkw.time; save(); paintWindow();
+  });
+  // imaging segs
+  $$('[data-img]').forEach(seg=>{
+    const k = seg.getAttribute('data-img');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.img[k] = b.dataset.v; save(); paintImaging();
+    }));
+  });
+  $('#aspects').addEventListener('input', e=>{ S.img.aspects = e.target.value; save(); paintMT(); });
+  // tnk segs
+  $$('[data-tnk]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.tnk[k] = b.dataset.v; save(); paintTNK();
+    }));
+  });
+  $$('[data-tnk-crit]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk-crit');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.tnk[k] = b.dataset.v; save(); paintTNK();
+    }));
+  });
+  $$('[data-tnk-abs]').forEach(seg=>{
+    const k = seg.getAttribute('data-tnk-abs');
+    seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); S.tnk.abs[k] = b.dataset.v; save(); paintTNK();
+    }));
+  });
+  // note
+  $('#note-impression').addEventListener('input', e=>{ S.note.impression = e.target.value; save(); compileNote(); });
+  $('#note-plan').addEventListener('input', e=>{ S.note.plan = e.target.value; save(); compileNote(); });
+  $('#copy-note').addEventListener('click', ()=>{ compileNote(); copyText($('#note-output').value); flash('#copy-note', 'Copied!'); });
+  $('#recompile').addEventListener('click', compileNote);
+  // drills
+  $$('[data-drill]').forEach(c=>c.addEventListener('click', ()=>startDrill(c.dataset.drill)));
+  $('#drill-next').addEventListener('click', nextDrill);
+  $('#drill-exit').addEventListener('click', exitDrill);
+  // sim
+  $('#sim-end').addEventListener('click', endSim);
+  $('#sim-exit').addEventListener('click', exitSim);
+  $('#sim-feedback-close').addEventListener('click', ()=>$('#sim-feedback').classList.remove('show'));
+  // keyboard 0-4 for nihss when on exam
+  document.addEventListener('keydown', e=>{
+    const k = e.key;
+    if(/^[0-4]$/.test(k) && document.activeElement && document.activeElement.classList.contains('chip')){
+      const row = document.activeElement.closest('.nihss-item');
+      if(row){
+        const id = row.dataset.id;
+        const it = NIHSS.find(x=>x.id===id);
+        const v = Number(k);
+        if(it && v <= it.max) setNIHSS(id, v);
       }
     }
+  });
+}
+function flash(sel, txt){
+  const el = $(sel); const orig = el.textContent;
+  el.textContent = txt; setTimeout(()=>{ el.textContent = orig; }, 1200);
+}
 
-    function compileNIHSSDeficits(){
-      const parts=[];
-      NIHSS.forEach(it=>{
-        const v=Number(state.nihss[it.id]||0);
-        if(v>0){ parts.push(`${it.short}=${v}`); }
-      });
-      return parts.join(', ');
-    }
-
-    function compileHandoff(){
-      const lines=[];
-      const lkn = state.lkn || '—';
-      const disc = state.disc || '—';
-      lines.push(`LKN: ${lkn} (discovery: ${disc})`);
-      const bp = (state.sbp||'—')+'/'+(state.dbp||'—'); lines.push(`BP: ${bp}`);
-      if(state.glu) lines.push(`Glucose: ${state.glu} mg/dL`);
-      const acTxt = state.ac==='yes' ? `Yes (last dose: ${state.lastDose})` : state.ac==='no' ? 'No' : 'Unknown';
-      lines.push(`Anticoagulation: ${acTxt}`);
-      lines.push(`CT: ${state.ct.toUpperCase()} | CTA: ${state.cta.toUpperCase()}`);
-      const total = nihssTotal();
-      const deficits = compileNIHSSDeficits();
-      lines.push(`NIHSS: ${total}${deficits ? ' — ' + deficits : ''}`);
-      $('#handoff-text').value = lines.join('\n');
-    }
-    function copy(txt){
-      navigator.clipboard.writeText(txt).catch(()=>{
-        const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
-        document.execCommand('copy'); ta.remove();
-      });
-    }
-
-    function bindTabs(){
-      $('#tab-prescreen').onclick=()=>showTab('prescreen');
-      $('#tab-nihss').onclick=()=>showTab('nihss');
-      $('#tab-elig').onclick=()=>showTab('elig');
-      $('#tab-handoff').onclick=()=>showTab('handoff');
-    }
-    function bindHeader(){
-      $('#startTimer').onclick=startTimer;
-      $('#stopTimer').onclick=stopTimer;
-      $('#resetTimer').onclick=resetTimer;
-      $('#copyHeader').onclick=()=>copy($('#handoff-text').value || compileHandoff());
-      $('#resetAll').onclick=()=>{ if(!confirm('Reset all fields for this case?')) return; localStorage.removeItem(KEY); location.reload(); };
-      document.addEventListener('keydown',(e)=>{
-        const k=e.key.toLowerCase();
-        if(k==='g'){ e.preventDefault(); $('#glucose').focus(); }
-        if(k==='b'){ e.preventDefault(); $('#sbp').focus(); }
-        if(k==='d'){ e.preventDefault(); $('#dbp').focus(); }
-        if(k==='l'){ e.preventDefault(); $('#lkn-time').focus(); }
-        if(k==='c'){ e.preventDefault(); copy($('#handoff-text').value || compileHandoff()); }
-        if(/^[0-4]$/.test(k) && $('#nihss').classList.contains('active')){
-          const focused=document.activeElement;
-          if(focused && focused.classList.contains('chip')){
-            const row=focused.closest('.nihss-item'); const id=row.getAttribute('data-id');
-            const val=Number(k); const max=NIHSS.find(x=>x.id===id).max;
-            if(val<=max) setNIHSS(id,val);
-          }
-        }
-      });
-    }
-    function bindInputs(){
-      $('#lkn-time').value=state.lkn||''; $('#lkn-time').addEventListener('input',()=>{ state.lkn=$('#lkn-time').value; save(); paintLKN(); });
-      $('#lkn-now').onclick=()=>{ const now=new Date(); const hh=pad2(now.getHours()), mm=pad2(now.getMinutes()); state.lkn=hh+':'+mm; $('#lkn-time').value=state.lkn; save(); paintLKN(); };
-      $('#lkn-unknown').onclick=()=>{ state.lkn=''; $('#lkn-time').value=''; save(); paintLKN(); };
-      $('#disc-time').value=state.disc||''; $('#disc-time').addEventListener('input',()=>{ state.disc=$('#disc-time').value; save(); });
-
-      $('#sbp').value=state.sbp||''; $('#sbp').addEventListener('input',()=>{ state.sbp=$('#sbp').value; save(); paintBP(); });
-      $('#dbp').value=state.dbp||''; $('#dbp').addEventListener('input',()=>{ state.dbp=$('#dbp').value; save(); paintBP(); });
-      $('#glucose').value=state.glu||''; $('#glucose').addEventListener('input',()=>{ state.glu=$('#glucose').value; save(); });
-
-      $$('[data-ct="result"] button').forEach(b=>b.onclick=()=>{
-        $$('[data-ct="result"] button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.ct=b.dataset.v; save();
-      });
-      $$('[data-cta="status"] button').forEach(b=>b.onclick=()=>{
-        $$('[data-cta="status"] button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.cta=b.dataset.v; save(); paintCTA();
-      });
-
-      $$('[data-anticoag="status"] button').forEach(b=>b.onclick=()=>{
-        $$('[data-anticoag="status"] button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.ac=b.dataset.v; save(); paintAnticoag();
-      });
-      $('#last-dose').value=state.lastDose||'lt24'; $('#last-dose').addEventListener('change',()=>{ state.lastDose=$('#last-dose').value; save(); });
-
-      $$('[data-crit]').forEach(seg=>{
-        const key=seg.getAttribute('data-crit');
-        seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
-          seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
-          b.classList.add('active'); state.crit[key]=b.dataset.v; save(); paintEligibility();
-        });
-      });
-
-      $$('[data-abs]').forEach(seg=>{
-        const key=seg.getAttribute('data-abs');
-        seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
-          seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
-          b.classList.add('active'); state.abs[key]=b.dataset.v; save(); paintEligibility();
-        });
-      });
-
-      $$('[data-lab]').forEach(seg=>{
-        const key=seg.getAttribute('data-lab');
-        seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
-          seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
-          b.classList.add('active'); state.labs[key]=b.dataset.v; save(); paintEligibility();
-        });
-      });
-
-      $('#copy-handoff').onclick=()=>copy($('#handoff-text').value || compileHandoff());
-    }
-
-    function init(){
-      load();
-      bindTabs(); bindHeader(); bindInputs();
-      renderNIHSS(); paintNIHSSTotal(); paintCTA(); paintBP(); paintLKN(); paintAnticoag(); paintEligibility(); compileHandoff();
-      showTab(state.tab || 'prescreen');
-      paintTimer(); if(state.timerRunning) startTimer();
-    }
-    init();
-  </script>
+// ============================================================
+// Init
+// ============================================================
+function init(){
+  load();
+  setMode(S.mode || 'live');
+  renderNIHSS();
+  renderSimList();
+  bindAll();
+  refreshAllUI();
+  showTab(S.activeTab || 'triage');
+  paintTimer();
+  if(S.timer.running) startTimer();
+}
+init();
+</script>
 </body>
 </html>
-"""
+) setNIHSS(id, v);
+      }
+    }
+  });
+}
+function flash(sel, txt){
+  const el = $(sel); const orig = el.textContent;
+  el.textContent = txt; setTimeout(()=>{ el.textContent = orig; }, 1200);
+}
 
-out = Path("/mnt/data/stroke_code_assistant_v7.html")
-out.write_text(html, encoding="utf-8")
-out.as_posix()
+// ============================================================
+// Init
+// ============================================================
+function init(){
+  load();
+  setMode(S.mode || 'live');
+  renderNIHSS();
+  renderSimList();
+  bindAll();
+  refreshAllUI();
+  showTab(S.activeTab || 'triage');
+  paintTimer();
+  if(S.timer.running) startTimer();
+}
+init();
+</script>
+</body>
+</html>
