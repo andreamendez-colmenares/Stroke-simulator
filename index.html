@@ -99,10 +99,11 @@ p,li{font-size:14px}
 .teach-body{padding:10px 12px;font-size:13px;color:#3b2f5e;display:none;background:#faf7ff;border-top:1px solid #e0d4f7}
 .teach-body p{margin:4px 0;font-size:13px}
 .teach.open .teach-body{display:block}
-.teach-head .toggle{margin-left:auto;font-size:12px;color:var(--brand)}
-.teach-head .toggle::after{content:"▾ tap"}
-.teach.open .teach-head .toggle::after{content:"▴ hide"}
+.teach-head .toggle{margin-left:auto;font-size:13px;color:var(--brand);opacity:.7}
+.teach-head .toggle::after{content:"▾"}
+.teach.open .teach-head .toggle::after{content:"▴"}
 .teach-head:hover{background:#e8def8}
+.teach-head:hover .toggle{opacity:1}
 body.sim-mode .teach{background:#fff;border-color:#b39ddb}
 body.sim-mode .teach .teach-body{display:block}
 body.sim-mode .teach .teach-head{cursor:default}
@@ -549,18 +550,17 @@ textarea.note{width:100%;min-height:140px;border:1px solid var(--line);border-ra
 
   <!-- NOTE -->
   <section class="panel" id="panel-note" role="tabpanel">
-    <h2>Note</h2>
+    <h2>Verbal handoff</h2>
+    <p class="muted small" style="margin-bottom:8px">Read this to the attending. Auto-generated from your inputs.</p>
 
-    <div class="card">
-      <div class="muted small">Impression — clinical synthesis based on the history and exam.</div>
-      <textarea id="note-impression" class="note" style="min-height:90px" placeholder="e.g., 68F with sudden right hemiparesis and aphasia, NIHSS 14, gaze deviation and dense hemiparesis consistent with left MCA syndrome. CTA confirmed L M1 occlusion. LKW 90 min ago, within standard window."></textarea>
+    <textarea id="note-output" class="note" style="min-height:160px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif;font-size:14px;line-height:1.6" readonly></textarea>
+    <div class="copy-row">
+      <button class="btn primary" id="copy-note">Copy handoff</button>
     </div>
 
-    <h3>Compiled note</h3>
-    <textarea id="note-output" class="note" readonly></textarea>
-    <div class="copy-row">
-      <button class="btn primary" id="copy-note">Copy</button>
-      <button class="btn outline" id="recompile">Recompile</button>
+    <div class="card" style="margin-top:14px">
+      <div class="muted small" style="margin-bottom:6px">Your impression / one-liner (optional — appended to the handoff)</div>
+      <textarea id="note-impression" class="note" style="min-height:60px" placeholder="e.g., concordant L MCA syndrome with M1 occlusion — TNK + activate IR for MT."></textarea>
     </div>
   </section>
 
@@ -660,7 +660,7 @@ const VIGNETTES = [
   },
   {
     id:'case2', number:2,
-    whatYouSee:'A 74-year-old is found on the floor at 06:30. She is mute, does not attend to the right side of the room, and does not move the right arm or leg. She was last seen normal at 22:00. CTA shows a left ICA terminus occlusion.',
+    whatYouSee:'A 74-year-old is found on the floor at 06:30. She is mute, has a right hemianopia, and does not move the right arm or leg. She was last seen normal at 22:00. CTA shows a left ICA terminus occlusion.',
     setup:{
       age:'74', cc:'Found down — mute, R-sided weakness',
       sbp:'168', dbp:'92', glucose:'124',
@@ -672,7 +672,7 @@ const VIGNETTES = [
     expected:{windowBucket:'wakeup', lvoSuspicion:'high', tnkEligible:'imaging-dependent', mtCandidate:true, hemorrhage:false},
     whatYouDo:'Treat this as an unknown-onset anterior LVO and move to imaging-based selection for EVT. Unknown onset is not an automatic exclusion. Guidance supports EVT in selected patients to 16 h, and selected cases to 24 h, from LKW.',
     whatYouSay:'This is not "outside the window" by default. For found-down LVO, the question is imaging eligibility, not whether the clock started while someone was watching.',
-    teaching:'Dominant hemispheric syndrome with contralateral inattention and dense hemiplegia fits a large left hemispheric ischemic event.',
+    teaching:'Dominant hemispheric syndrome with contralateral hemianopia, aphasia, and dense hemiplegia fits a large left hemispheric ischemic event (L ICA terminus / "T occlusion").',
     trap:'Equating wake-up stroke with ineligibility.'
   },
   {
@@ -957,7 +957,7 @@ function paintWindow(){
   let text = '';
   const untouched = (t==='known' && !S.lkw.time);
   if(untouched) text = '';
-  else if(bucket==='standard') text = 'NCCT mandatory. CTA if any LVO suspicion or NIHSS ≥6.';
+  else if(bucket==='standard') text = 'NCCT + CTA. Add CTP if extended-window decisions or LVO suspicion need core/penumbra characterization.';
   else if(bucket==='extended' || bucket==='late') text = 'NCCT + CTA + CTP. Mismatch qualifies extended-window MT.';
   else if(bucket==='wakeup') text = 'NCCT + CTA. <b>MRI DWI/FLAIR</b> for IVT eligibility (institutional preference for wake-up). DWI+/FLAIR− mismatch qualifies for IVT.';
   else if(bucket==='unknown') text = 'NCCT + CTA + <b>CTP</b> (institutional preference for unknown LKW). Mismatch qualifies for MT.';
@@ -1130,54 +1130,87 @@ function paintMT(){
 // Note
 // ============================================================
 function compileNote(){
-  const lines = [];
-  if(S.cc) lines.push('CC: ' + S.cc + (S.age ? ' ('+S.age+'yo)' : ''));
-  else if(S.age) lines.push('Patient age: ' + S.age);
-  lines.push('');
-  // History/Timing
-  let lkwLine = 'LKW: ';
-  if(S.lkw.type==='unknown') lkwLine += 'Unknown';
-  else if(S.lkw.type==='wakeup') lkwLine += 'Wake-up — last seen well ' + (S.lkw.time||'—') + ', discovered ' + (S.lkw.disc||'—');
-  else lkwLine += (S.lkw.time||'—');
-  lines.push(lkwLine);
-  lines.push('Window: ' + windowDescription());
-  lines.push('');
-  // Vitals
+  // Produce a verbal-handoff-style paragraph optimized for presenting to the attending.
+  const sentences = [];
+
+  // Sentence 1: demographics + chief complaint + LKW + window
+  let s1 = '';
+  if(S.age) s1 += S.age + 'yo';
+  if(S.cc) {
+    let cc = S.cc.trim();
+    // Lowercase first char only if second char is a lowercase letter (normal word).
+    // Preserves leading laterality like "L hemiparesis" or "R hand weakness".
+    if(cc.length > 1 && /[a-z]/.test(cc[1])) cc = cc[0].toLowerCase() + cc.slice(1);
+    s1 += (s1 ? ' with ' : 'Patient with ') + cc;
+  }
+  // LKW phrase
+  let lkwPhrase = '';
+  if(S.lkw.type==='unknown') lkwPhrase = 'LKW unknown';
+  else if(S.lkw.type==='wakeup') lkwPhrase = 'wake-up stroke (last seen well ' + (S.lkw.time||'?') + ', found ' + (S.lkw.disc||'?') + ')';
+  else if(S.lkw.time) lkwPhrase = 'LKW ' + S.lkw.time + (mins(S.lkw.time)!=null ? ' (~'+formatMins(mins(S.lkw.time))+' ago)' : '');
+  if(lkwPhrase) s1 += (s1 ? ', ' : '') + lkwPhrase;
+  // Window
+  if(S._windowBucket && S._windowBucket !== 'unknown') s1 += ' — ' + windowDescription().toLowerCase() + ' window';
+  if(s1) sentences.push(s1 + '.');
+
+  // Sentence 2: NIHSS + deficits + cortical signs + LVO suspicion
+  const total = nihssTotal();
+  if(total > 0 || Object.keys(S.nihss).length){
+    let s2 = 'NIHSS ' + total;
+    const cortFlags = [];
+    if(S.cortical.gazeDeviation==='yes') cortFlags.push('forced gaze deviation');
+    if(S.cortical.aphasia==='yes') cortFlags.push('aphasia');
+    if(S.cortical.neglect==='yes') cortFlags.push('hemineglect');
+    if(S.cortical.denseHemi==='yes') cortFlags.push('dense hemiparesis');
+    if(cortFlags.length){
+      s2 += ' with ' + joinList(cortFlags);
+    }
+    if(S._lvoLevel === 'high') s2 += ' — high LVO suspicion';
+    else if(S._lvoLevel === 'moderate') s2 += ' — moderate LVO suspicion';
+    sentences.push(s2 + '.');
+  }
+
+  // Sentence 3: vitals
   if(S.sbp || S.dbp || S.glucose){
-    let v = 'Vitals: ';
-    if(S.sbp || S.dbp) v += 'BP ' + (S.sbp||'—') + '/' + (S.dbp||'—');
-    if(S.glucose) v += (S.sbp||S.dbp ? ', ' : '') + 'glucose ' + S.glucose + ' mg/dL';
-    lines.push(v);
-    lines.push('');
+    let s3 = '';
+    if(S.sbp || S.dbp) s3 += 'BP ' + (S.sbp||'?') + '/' + (S.dbp||'?');
+    if(S.glucose) s3 += (s3 ? ', ' : '') + 'glucose ' + S.glucose;
+    sentences.push(s3 + '.');
   }
-  // Exam
-  lines.push('NIHSS: ' + nihssTotal());
-  const deficits = NIHSS.filter(it=>Number(S.nihss[it.id]||0) > 0)
-    .map(it=>it.short+'='+S.nihss[it.id]).join(', ');
-  if(deficits) lines.push('  Deficits: ' + deficits);
-  const cortFlags = [];
-  if(S.cortical.gazeDeviation==='yes') cortFlags.push('forced gaze deviation');
-  if(S.cortical.aphasia==='yes') cortFlags.push('aphasia');
-  if(S.cortical.neglect==='yes') cortFlags.push('hemineglect');
-  if(S.cortical.denseHemi==='yes') cortFlags.push('dense hemiparesis');
-  if(cortFlags.length) lines.push('  Cortical signs: ' + cortFlags.join(', '));
-  if(S._lvoLevel) lines.push('  LVO suspicion: ' + S._lvoLevel.toUpperCase());
-  lines.push('');
-  // Imaging
-  const imgLines = [];
-  if(S.img.ncct && S.img.ncct !== 'pending') imgLines.push('NCCT: ' + S.img.ncct + (S.img.aspects ? ' (ASPECTS '+S.img.aspects+')' : ''));
-  if(S.img.cta && S.img.cta !== 'pending') imgLines.push('CTA: ' + S.img.cta);
-  if(S.img.ctp && S.img.ctp !== 'na') imgLines.push('CTP: ' + S.img.ctp);
-  if(S.img.mri && S.img.mri !== 'na') imgLines.push('MRI DWI/FLAIR: ' + S.img.mri);
-  if(imgLines.length){
-    lines.push('Imaging:');
-    imgLines.forEach(l=>lines.push('  ' + l));
-    lines.push('');
+
+  // Sentence 4: imaging
+  const imgParts = [];
+  if(S.img.ncct === 'negative') imgParts.push('NCCT negative for hemorrhage');
+  else if(S.img.ncct === 'early') imgParts.push('NCCT with early ischemic changes' + (S.img.aspects ? ' (ASPECTS '+S.img.aspects+')' : ''));
+  else if(S.img.ncct === 'ich') imgParts.push('NCCT shows intracerebral hemorrhage');
+  else if(S.img.ncct === 'sah') imgParts.push('NCCT shows subarachnoid hemorrhage');
+  if(S.img.cta === 'lvo-anterior') imgParts.push('CTA confirms anterior LVO');
+  else if(S.img.cta === 'lvo-basilar') imgParts.push('CTA shows basilar occlusion');
+  else if(S.img.cta === 'm2') imgParts.push('CTA shows M2/distal occlusion');
+  else if(S.img.cta === 'negative') imgParts.push('CTA without LVO');
+  if(S.img.aspects && !imgParts.some(p=>p.includes('ASPECTS'))) imgParts.push('ASPECTS ' + S.img.aspects);
+  if(S.img.ctp === 'mismatch') imgParts.push('CTP shows perfusion mismatch');
+  else if(S.img.ctp === 'nomismatch') imgParts.push('CTP without mismatch');
+  if(S.img.mri === 'mismatch') imgParts.push('MRI DWI+/FLAIR− mismatch');
+  else if(S.img.mri === 'nomismatch') imgParts.push('MRI DWI+/FLAIR+ (no mismatch)');
+  if(imgParts.length) sentences.push(joinList(imgParts) + '.');
+
+  // Sentence 5: mimic flag
+  if(S.mimic.primaryStroke === 'no') sentences.push('Working diagnosis is stroke mimic.');
+
+  // Sentence 6: impression (resident input, appended verbatim)
+  if(S.note.impression && S.note.impression.trim()){
+    sentences.push('Impression: ' + S.note.impression.trim() + (S.note.impression.trim().endsWith('.') ? '' : '.'));
   }
-  // Impression
-  lines.push('Impression:');
-  lines.push(S.note.impression || '[fill in]');
-  $('#note-output').value = lines.join('\n');
+
+  $('#note-output').value = sentences.join(' ');
+}
+function mins(t){ return minutesSince(t); }
+function joinList(arr){
+  if(arr.length === 0) return '';
+  if(arr.length === 1) return arr[0];
+  if(arr.length === 2) return arr[0] + ' and ' + arr[1];
+  return arr.slice(0,-1).join(', ') + ', and ' + arr[arr.length-1];
 }
 function windowDescription(){
   const w = S._windowBucket;
@@ -1282,10 +1315,10 @@ function endSim(){
   rows.forEach(r=>{
     html += `<div class="sc-row ${r.ok?'correct':'wrong'}"><span>${r.label}</span><span>${r.ok?'✓':'✗'} got: ${r.got} (expected: ${r.want})</span></div>`;
   });
-  html += `<div class="reveal"><h4>What you do</h4><p>${v.whatYouDo}</p></div>`;
-  html += `<div class="reveal"><h4>What you say back when pushed</h4><blockquote>${v.whatYouSay}</blockquote></div>`;
-  html += `<div class="reveal"><h4>Teaching point</h4><p>${v.teaching}</p></div>`;
-  html += `<div class="reveal" style="border-left-color:#c62828"><h4 style="color:#c62828">Trap</h4><p>${v.trap}</p></div>`;
+  html += `<div class="reveal"><h4>1. What you do</h4><p>${v.whatYouDo}</p></div>`;
+  html += `<div class="reveal"><h4>2. What you say back when pushed</h4><blockquote>${v.whatYouSay}</blockquote></div>`;
+  html += `<div class="reveal"><h4>3. Teaching point</h4><p>${v.teaching}</p></div>`;
+  html += `<div class="reveal" style="border-left-color:#c62828"><h4 style="color:#c62828">4. Trap to avoid</h4><p>${v.trap}</p></div>`;
   html += `<div class="copy-row" style="margin-top:14px"><button class="btn primary" id="back-to-cases">Back to case list</button></div>`;
   html += '</div>';
   $('#sim-scorecard').innerHTML = html;
@@ -1335,8 +1368,8 @@ function bindAll(){
     if(S.mode==='sim') return;
     h.parentElement.classList.toggle('open');
   }));
-  $('#age').addEventListener('input', e=>{ S.age = e.target.value; save(); });
-  $('#cc').addEventListener('input', e=>{ S.cc = e.target.value; save(); });
+  $('#age').addEventListener('input', e=>{ S.age = e.target.value; save(); compileNote(); });
+  $('#cc').addEventListener('input', e=>{ S.cc = e.target.value; save(); compileNote(); });
   $('#sbp').addEventListener('input', e=>{ S.sbp = e.target.value; save(); paintBP(); });
   $('#dbp').addEventListener('input', e=>{ S.dbp = e.target.value; save(); paintBP(); });
   $('#glucose').addEventListener('input', e=>{ S.glucose = e.target.value; save(); paintGlucose(); });
@@ -1403,7 +1436,6 @@ function bindAll(){
   });
   $('#note-impression').addEventListener('input', e=>{ S.note.impression = e.target.value; save(); compileNote(); });
   $('#copy-note').addEventListener('click', ()=>{ compileNote(); copyText($('#note-output').value); });
-  $('#recompile').addEventListener('click', compileNote);
   $('#case-end').addEventListener('click', endSim);
   $('#case-exit').addEventListener('click', exitSim);
   document.addEventListener('keydown', e=>{
