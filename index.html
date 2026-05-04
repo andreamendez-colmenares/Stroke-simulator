@@ -117,6 +117,13 @@ header h1{font-size:18px;font-weight:800}
 .acquire-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:760px){.acquire-layout{grid-template-columns:1fr}}
 
+/* Case images */
+.case-image{margin-top:10px;background:#0a0a0a;border-radius:8px;overflow:hidden;border:1px solid #333}
+.case-image svg{display:block;width:100%;height:auto;max-width:480px;margin:0 auto}
+.image-caption{padding:8px 12px;background:#1a1a1a;color:#ddd;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.image-caption a{color:#90caf9;text-decoration:none}
+.image-caption a:hover{text-decoration:underline}
+
 /* Posterior tip box */
 .posterior-tip{background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#6c4a04;border-left:4px solid #f57c00}
 .posterior-tip h5{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#7c4a03;margin-bottom:4px}
@@ -195,6 +202,7 @@ header h1{font-size:18px;font-weight:800}
 <span class="phase">Phase A: Recognize</span>
 </div>
 <div class="arrival-text" id="rec-arrival"></div>
+<div id="rec-image" class="case-image" style="display:none"></div>
 </div>
 
 <div id="posterior-tip-rec" class="posterior-tip" style="display:none">
@@ -231,6 +239,7 @@ header h1{font-size:18px;font-weight:800}
 <span class="phase">Phase B: Acquire data</span>
 </div>
 <div class="arrival-text" id="acq-arrival"></div>
+<div id="acq-image" class="case-image" style="display:none"></div>
 </div>
 
 <div class="card tight">
@@ -284,6 +293,7 @@ header h1{font-size:18px;font-weight:800}
 <span class="phase">Phase C: Act</span>
 </div>
 <div class="arrival-text" id="act-arrival"></div>
+<div id="act-image" class="case-image" style="display:none"></div>
 </div>
 
 <div class="card">
@@ -313,6 +323,10 @@ header h1{font-size:18px;font-weight:800}
 </div>
 </section>
 
+
+<footer style="text-align:center;padding:30px 12px 20px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);margin-top:40px">
+  &copy; 2025 Andrea Mendez Colmenares &middot; Contact: <a href="mailto:asm147@duke.edu" style="color:var(--brand)">asm147@duke.edu</a>
+</footer>
 </div>
 
 <script>
@@ -420,6 +434,67 @@ const PATHWAYS = [
   {id:'hemorrhage', title:'Hemorrhage pathway', desc:'Call attending. CT head shows hemorrhage. Stop reperfusion thinking. Lower SBP to 130 to under 140 smoothly, avoid overshoot below 130. Reverse anticoagulation if applicable. Page NSGY. NICU disposition.'},
   {id:'mimic_unclear', title:'Mimic or unclear', desc:'Call attending. Stroke is not the working diagnosis or it is unclear. Treat the trigger (seizure, hypoglycemia). Hold reperfusion. Get rapid EEG if NCSE concern.'}
 ];
+
+// ============================================================
+// Case illustrations (inline SVG)
+// ============================================================
+const CASE_IMAGES = {
+  c1: {
+    svg: `<svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="320" fill="#0a0a0a"/>
+<ellipse cx="200" cy="160" rx="155" ry="130" fill="none" stroke="#fff" stroke-width="6" opacity="0.85"/>
+<ellipse cx="200" cy="160" rx="148" ry="123" fill="#3a3a3a"/>
+<path d="M 175 130 Q 165 140 170 165 Q 175 175 185 175 L 185 130 Z" fill="#0e0e0e"/>
+<path d="M 215 130 Q 215 175 225 175 Q 235 175 230 165 Q 225 140 215 130 Z" fill="#0e0e0e"/>
+<line x1="200" y1="130" x2="200" y2="180" stroke="#0e0e0e" stroke-width="3"/>
+<path d="M 90 175 Q 110 165 135 170" stroke="#1a1a1a" stroke-width="4" fill="none"/>
+<path d="M 265 170 Q 290 165 310 175" stroke="#1a1a1a" stroke-width="4" fill="none"/>
+<line x1="105" y1="172" x2="135" y2="170" stroke="#5a5a5a" stroke-width="2.5" opacity="0.7"/>
+<line x1="265" y1="170" x2="295" y2="172" stroke="#ffffff" stroke-width="4"/>
+<line x1="350" y1="225" x2="290" y2="180" stroke="#ffeb3b" stroke-width="2.5"/>
+<polygon points="290,180 295,188 285,189" fill="#ffeb3b"/>
+<text x="380" y="245" fill="#ffeb3b" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="end">Hyperdense MCA sign</text>
+<text x="380" y="262" fill="#ffeb3b" font-family="sans-serif" font-size="11" text-anchor="end">Left M1 thrombus</text>
+<text x="370" y="28" fill="#888" font-family="sans-serif" font-size="11" text-anchor="end">L</text>
+<text x="22" y="28" fill="#888" font-family="sans-serif" font-size="11">R</text>
+<text x="200" y="305" fill="#aaa" font-family="sans-serif" font-size="11" text-anchor="middle">Schematic axial CT head, basal ganglia level (radiologic convention: image right = patient left)</text>
+</svg>`,
+    caption: 'Schematic of the hyperdense MCA sign. The bright linear density in the left Sylvian fissure represents acute thrombus in the M1 segment, visible on the very first CT head before contrast. Recognizing this sign can drive immediate IV tenecteplase, even before CTA confirms the occlusion.',
+    link: 'https://radiopaedia.org/cases/left-mca-stroke-dense-mca-sign',
+    linkText: 'Real example on Radiopaedia'
+  },
+  c5: {
+    svg: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="220" fill="#1a1a1a"/>
+<ellipse cx="200" cy="105" rx="125" ry="85" fill="#fce4ec" stroke="#888" stroke-width="2"/>
+<ellipse cx="155" cy="95" rx="22" ry="13" fill="#fff" stroke="#666" stroke-width="1"/>
+<circle cx="155" cy="95" r="9" fill="#5d4037"/>
+<circle cx="155" cy="95" r="3.5" fill="#000"/>
+<path d="M 133 95 Q 155 80 177 95" fill="none" stroke="#000" stroke-width="1.5"/>
+<text x="155" y="135" fill="#fff" font-family="sans-serif" font-size="11" text-anchor="middle">Right eye (normal)</text>
+<ellipse cx="245" cy="95" rx="22" ry="13" fill="#fff" stroke="#666" stroke-width="1"/>
+<circle cx="258" cy="100" r="9" fill="#5d4037"/>
+<circle cx="258" cy="100" r="6.5" fill="#000"/>
+<path d="M 223 95 Q 245 102 267 95 L 267 78 L 223 78 Z" fill="#fce4ec" opacity="0.95"/>
+<path d="M 223 95 Q 245 102 267 95" fill="none" stroke="#000" stroke-width="1.5"/>
+<text x="245" y="135" fill="#ffeb3b" font-family="sans-serif" font-size="11" text-anchor="middle">Left eye: down and out, dilated, ptosis</text>
+<line x1="305" y1="65" x2="275" y2="92" stroke="#ffeb3b" stroke-width="2"/>
+<polygon points="275,92 280,86 282,94" fill="#ffeb3b"/>
+<text x="310" y="58" fill="#ffeb3b" font-family="sans-serif" font-size="11" font-weight="bold">Drooping</text>
+<text x="310" y="72" fill="#ffeb3b" font-family="sans-serif" font-size="11" font-weight="bold">eyelid</text>
+<line x1="335" y1="135" x2="275" y2="105" stroke="#ffeb3b" stroke-width="2"/>
+<polygon points="275,105 282,102 280,110" fill="#ffeb3b"/>
+<text x="340" y="135" fill="#ffeb3b" font-family="sans-serif" font-size="11" font-weight="bold">Dilated pupil</text>
+<text x="340" y="149" fill="#ffeb3b" font-family="sans-serif" font-size="11" font-weight="bold">eye down/out</text>
+<text x="200" y="170" fill="#aaa" font-family="sans-serif" font-size="12" text-anchor="middle">Left CN III palsy + right hemiparesis = Weber syndrome</text>
+<text x="200" y="190" fill="#aaa" font-family="sans-serif" font-size="11" text-anchor="middle">Localizes to the left midbrain (cerebral peduncle)</text>
+<text x="20" y="20" fill="#ffeb3b" font-family="sans-serif" font-size="13" font-weight="bold">Weber syndrome</text>
+</svg>`,
+    caption: 'The left eye sits down and out because CN III is out, and the unopposed lateral rectus (CN VI) and superior oblique (CN IV) pull the eye laterally and inferiorly. The pupil is dilated (parasympathetic fibers run with CN III). The eyelid droops (levator palpebrae). On the OPPOSITE side, the corticospinal tract is also affected as it descends through the cerebral peduncle, producing contralateral hemiparesis.',
+    link: 'https://radiopaedia.org/articles/weber-syndrome',
+    linkText: 'Weber syndrome on Radiopaedia'
+  }
+};
 
 // ============================================================
 // CASES (compact)
@@ -606,7 +681,7 @@ const CASES = [
   cta:'CTA: no LVO. Mild diffuse atherosclerotic disease, no acute occlusion.',
   ctp:'CTP: not done. No LVO suspected.',
   mri:'MRI: small acute DWI lesion in left precentral hand knob region of motor cortex.',
-  collateral:'Patient is the historian. Independent baseline, working dentist (uses dominant hand precisely).',
+  collateral:'Patient is the historian. Independent baseline. When asked directly "do you consider this disabling to you," he says yes (he is a working dentist and uses the dominant hand precisely).',
   ems_timeline:'Patient self presented to ED.',
   meds:'No anticoag. No regular meds.',
   baseline:'mRS 0. Active dentist.',
@@ -617,8 +692,8 @@ const CASES = [
  },
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','mri','collateral'],
- syndromeStory:'He cannot make a fist or tap his fingers with the dominant hand, but the face and leg look fine. The MRI showed a small infarct in the hand area of the left motor cortex (the hand knob). NIHSS is 1, but for a working dentist this is functionally disabling. Current guidance supports IV tenecteplase for any disabling deficit regardless of NIHSS. DAPT (clopidogrel plus aspirin for 21 days, then aspirin alone, based on CHANCE and POINT) is reserved for nondisabling minor stroke (NIHSS 0 to 5) when reperfusion is not chosen, supported by PRISMS data. Here disability outweighs the NIHSS number, and tenecteplase is the right call.',
- teach:'Disabling versus nondisabling drives reperfusion in mild stroke. DAPT (clopidogrel plus aspirin) is for nondisabling minor stroke (NIHSS 0 to 5), based on CHANCE and POINT. Thrombolyze any disabling deficit at any NIHSS. Always ask the occupation.',
+ syndromeStory:'He cannot make a fist or tap his fingers with the dominant hand, but the face and leg look fine. The MRI showed a small infarct in the hand area of the left motor cortex (the hand knob). NIHSS is 1. Ask him directly: "Do you consider this deficit disabling to you?" He says yes. Patient self-assessment of disability is what drives the decision in mild stroke, more than the NIHSS number or even the occupation alone. Current guidance supports IV tenecteplase for any disabling deficit regardless of NIHSS. DAPT (clopidogrel plus aspirin for 21 days, then aspirin alone, based on CHANCE and POINT) is reserved for nondisabling minor stroke (NIHSS 0 to 5) when reperfusion is not chosen, supported by PRISMS data.',
+ teach:'Disabling versus nondisabling drives reperfusion in mild stroke. The key question is to ask the PATIENT whether THEY consider this deficit disabling to them. Occupation is one input, but the answer that matters is the patient self-assessment. DAPT (clopidogrel plus aspirin) is for nondisabling minor stroke (NIHSS 0 to 5), based on CHANCE and POINT. Thrombolyze any disabling deficit at any NIHSS.',
  trap:'Calling it minor stroke because NIHSS is 1.'
 },
 
@@ -774,6 +849,15 @@ function showReview(){
 // ============================================================
 // Load case
 // ============================================================
+function renderCaseImage(elId, caseId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const img = CASE_IMAGES[caseId];
+  if(!img){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='block';
+  el.innerHTML = img.svg + '<div class="image-caption"><span>'+img.caption+'</span>'+(img.link?' <a href="'+img.link+'" target="_blank" rel="noopener">'+(img.linkText||'View example')+' &rarr;</a>':'')+'</div>';
+}
+
 function loadCase(id){
   const c = CASES.find(x=>x.id===id); if(!c) return;
   // Reset case-specific state but keep history
@@ -787,6 +871,7 @@ function loadCase(id){
   // Render Phase A
   $('#rec-num').textContent = c.n;
   $('#rec-arrival').textContent = c.arrival;
+  renderCaseImage('rec-image', c.id);
   renderKUC('rec-kuc', c);
   renderSyndromePicker(c);
   $('#rec-continue').disabled = true;
@@ -860,6 +945,7 @@ function enterAcquire(){
   const c = CASES.find(x=>x.id===S.caseId); if(!c) return;
   $('#acq-num').textContent = c.n;
   $('#acq-arrival').textContent = c.arrival;
+  renderCaseImage('acq-image', c.id);
   const syn = SYNDROMES.find(s=>s.id===S.syndromeChoice);
   $('#acq-syndrome').textContent = syn ? syn.title : '-';
   renderKUC('acq-kuc', c);
@@ -929,6 +1015,7 @@ function enterAct(){
   const c = CASES.find(x=>x.id===S.caseId); if(!c) return;
   $('#act-num').textContent = c.n;
   $('#act-arrival').textContent = c.arrival;
+  renderCaseImage('act-image', c.id);
   // Summary
   const sum = $('#act-summary');
   if(!S.actionsTaken.length){
