@@ -167,7 +167,7 @@ header h1{font-size:18px;font-weight:800}
 <section id="phase-home" class="phase-section active">
 <div class="home-hero">
 <h2>Stroke Code Simulator</h2>
-<p>A simulation environment for PGY2 neurology residents. Each case starts with incomplete information. Recognize the syndrome, request the right data, choose the pathway, and present a clean handoff.</p>
+<p>Practice recognizing stroke syndromes, asking for the right next data, and matching the exam to the imaging.</p>
 </div>
 
 <div class="home-actions">
@@ -177,7 +177,7 @@ header h1{font-size:18px;font-weight:800}
 
 <div id="case-picker-section" style="display:none">
 <h3>Pick a case</h3>
-<p class="muted small">Each case has unknowns. Resist the urge to peek. the cases are designed to teach uncertainty.</p>
+
 <div id="case-grid" class="case-grid"></div>
 </div>
 
@@ -297,12 +297,6 @@ header h1{font-size:18px;font-weight:800}
 <div class="pathway-picker" id="pathway-picker"></div>
 </div>
 
-<div class="card" id="reason-card" style="display:none">
-<h4 style="margin-top:0">What is the main reason for this pathway?</h4>
-<p class="muted small" style="margin-bottom:10px">Pick the dominant clinical reasoning.</p>
-<div class="pathway-picker" id="reason-picker"></div>
-</div>
-
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button class="btn outline" id="back-acquire">← More data needed</button>
 <button class="btn primary" id="end-case" style="flex:1" disabled>End simulation &amp; debrief</button>
@@ -335,7 +329,6 @@ function freshState(){
     actionTimestamps:{},
     revealed:{},
     pathwayChoice:null,
-    reasonChoice:null,
     timer:{running:false,t0:0,elapsed:0},
     history:[]
   };
@@ -423,27 +416,9 @@ const ACTION_UPDATES = {
 // Pathways (confidence language)
 // ============================================================
 const PATHWAYS = [
-  {id:'tnk_evt', title:'TNK and page IR to discuss MT', desc:'Call attending. TNK 0.25 mg/kg (max 25 mg) per order set. Page IR to discuss MT in parallel. Have CTP at hand.'},
-  {id:'evt_only', title:'Page IR to discuss MT', desc:'Call attending. Page IR to discuss MT. CTP confirms imaging selection. TNK out of window or not feasible.'},
-  {id:'tnk_only', title:'TNK now', desc:'Call attending. TNK 0.25 mg/kg per order set, max 25 mg. No LVO so MT not indicated.'},
-  {id:'bp_first', title:'Lower BP first, then proceed', desc:'Call attending. Titrate to under 185/110 with labetalol or nicardipine. Do NOT push below 140 (penumbral perfusion).'},
-  {id:'ich_pathway', title:'Hemorrhage management', desc:'Call attending. Page NSGY. SBP 130 to under 140 smoothly. Reverse anticoag if applicable. NICU disposition.'},
-  {id:'mimic_pathway', title:'Mimic / non-stroke pathway', desc:'Call attending. Treat the trigger (seizure, hypoglycemia, etc.). Hold TNK pending observation. EEG if NCSE concern.'},
-  {id:'attending_disc', title:'Call attending for direct guidance', desc:'Borderline or unusual presentation. Relative contraindication or uncertainty. Do not act unilaterally.'},
-  {id:'more_data', title:'Go back, acquire more data', desc:'Critical information missing. Return to Phase B before deciding.'}
-];
-
-// ============================================================
-// REASONS (forced-choice "why" after pathway selection)
-// ============================================================
-const REASONS = [
-  {id:'concordant', text:'Concordant cortical syndrome plus LVO on imaging.'},
-  {id:'disabling', text:'Disabling deficit despite low NIHSS (occupation/function-driven).'},
-  {id:'mismatch', text:'Imaging mismatch in extended window or wake-up.'},
-  {id:'hemorrhage', text:'Hemorrhage on CT head (diverts entirely).'},
-  {id:'mimic', text:'Mimic sequence more likely than stroke (positive motor onset, hypoglycemia, etc).'},
-  {id:'bp_threshold', text:'BP above reperfusion threshold but otherwise a candidate.'},
-  {id:'posterior_severity', text:'Posterior syndrome undercounted by NIHSS or with crossed signs.'}
+  {id:'reperfusion', title:'Reperfusion candidate', desc:'Call attending. Acute ischemic stroke that may benefit from IV tenecteplase, mechanical thrombectomy, or both. Page IR to discuss MT if LVO present. Specifics depend on window, occlusion location, ASPECTS, and contraindications.'},
+  {id:'hemorrhage', title:'Hemorrhage pathway', desc:'Call attending. CT head shows hemorrhage. Stop reperfusion thinking. Lower SBP to 130 to under 140 smoothly, avoid overshoot below 130. Reverse anticoagulation if applicable. Page NSGY. NICU disposition.'},
+  {id:'mimic_unclear', title:'Mimic or unclear', desc:'Call attending. Stroke is not the working diagnosis or it is unclear. Treat the trigger (seizure, hypoglycemia). Hold reperfusion. Get rapid EEG if NCSE concern.'}
 ];
 
 // ============================================================
@@ -452,147 +427,131 @@ const REASONS = [
 const CASES = [
 
 {id:'c1', n:1,
- arrival:'~68yo, EMS from a restaurant. Suddenly stopped speaking, gaze preference left, no movement R arm/leg. No name on file.',
+ arrival:'About 68 years old, brought in by EMS from a restaurant. EMS says the patient suddenly stopped talking mid meal, kept staring to the left, and stopped moving the right arm and leg. No ID on her, no family with her yet.',
  unknowns:['identity','lkw','baseline','anticoag','seizure','collateral','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'dominant_mca',
  r:{
   glucose:'Glucose 118.',
   bp:'BP 168/92.',
-  nihss:'NIHSS 15. Forced L gaze, global aphasia, R facial droop, dense R arm/leg plegia.',
-  ncct:'CT head: no hemorrhage, no early ischemic changes. ASPECTS 9.',
+  nihss:'NIHSS 15. Forced left gaze (gaze 2), global aphasia (language 3), right facial droop (facial 2), dense right arm and leg plegia (arm 4, leg 4).',
+  ncct:'CT head: no hemorrhage, no early ischemic changes. ASPECTS 10 (no early ischemic change anywhere in the MCA territory).',
   cta:'CTA: left M1 occlusion. Cervical vessels patent.',
   ctp:'CTP: small core, large penumbra (mismatch).',
-  mri:'MRI not pursued. CTA was diagnostic.',
-  collateral:'Daughter located 8 min in: LKW 13:30 (~90 min ago). Patient is independent (mRS 0). No seizures. No anticoag.',
-  ems_timeline:'EMS: scene call 14:00, patient symptomatic on arrival. Onset ~13:30 per witness.',
-  meds:'No anticoagulation. HTN.',
-  baseline:'mRS 0, independent, working part-time.',
+  mri:'MRI not pursued. CTA is diagnostic.',
+  collateral:'Daughter located 8 minutes in: last seen well at 1:30 PM (about 90 minutes ago). She is independent at baseline. No seizures. No anticoagulants.',
+  ems_timeline:'EMS scene call at 2 PM. Patient was symptomatic on arrival. Onset around 1:30 PM per witness.',
+  meds:'No anticoagulation. Hypertension only.',
+  baseline:'mRS 0. Independent, working part time.',
   seizure_hx:'No seizure history.',
   eeg:'Not indicated for this presentation.',
   osh:'No outside hospital records.',
   pharmacy:'No DOAC fills on record.'
  },
- pathway:'tnk_evt',
- reason:'concordant',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
- do:'Treat as L MCA syndrome from anterior LVO. TNK 0.25 mg/kg per order set (max 25 mg). Page IR to discuss MT for EVT in parallel. do not wait to see if TNK works. BP <185/110 before TNK, ≤180/105 first 24 h, do NOT push <140 after EVT.',
- say:'Concordant cortical syndrome with concordant L M1 occlusion. Nothing else should slow reperfusion.',
- teach:'Recognize gaze preference + aphasia + contralateral hemiplegia as a dominant LVO until proven otherwise.',
- trap:'Delaying because the patient\'s name/MRN is not yet known.',
- handoff:'~68yo with concordant left MCA syndrome. gaze L, global aphasia, dense R hemi, NIHSS 15. CTA L M1, ASPECTS 9, ~90 min from LKW. CT head clean. Giving TNK now and paging IR to discuss MT.',
- irCall:'Acute L M1 occlusion, NIHSS 15, ASPECTS 9, within 4.5 h LKW. TNK administered. NICU bed reserved.'
+ syndromeStory:'This patient suddenly stopped talking, kept staring to the left, and lost movement of the right arm and leg. That bedside pattern is a left dominant hemispheric cortical syndrome, classic for a left middle cerebral artery (M1) occlusion. CTA confirmed a left M1 occlusion, matching the syndrome. Within 90 minutes of onset, this is a reperfusion candidate: IV tenecteplase plus paging IR to discuss MT in parallel.',
+ teach:'Sudden aphasia plus forced gaze deviation plus contralateral hemiplegia points to a dominant hemispheric LVO until proven otherwise. Concordant cortical syndrome plus concordant LVO drives immediate reperfusion. TNK and MT pathways run in parallel, not in sequence.',
+ trap:'Delaying reperfusion because the patient identity is not yet known. Identity sorting can happen in parallel.'
 },
 
 {id:'c2', n:2,
- arrival:'Patient found at 06:30 on bedroom floor. Mute, R hemianopia, dense R hemiplegia. No spontaneous speech.',
+ arrival:'Around 74 years old, found by family on the bedroom floor at 6:30 AM. She is not speaking at all, does not seem to see anything to her right, and is not moving the right arm or leg. Family last saw her normal at 10 PM the night before.',
  unknowns:['lkw','baseline','anticoag','seizure','collateral','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'dominant_mca',
  r:{
   glucose:'Glucose 124.',
   bp:'BP 178/94.',
-  nihss:'NIHSS 16. Mute (NIHSS lang 3), R hemianopia, R facial droop, R arm/leg plegia, R extinction. Forced L gaze.',
-  ncct:'CT head: no hemorrhage, no early ischemic changes. ASPECTS 8.',
-  cta:'CTA: left ICA terminus ("T") occlusion.',
-  ctp:'CTP: large mismatch. modest core, very large penumbra.',
-  mri:'MRI DWI+/FLAIR− (mismatch present). supports IVT eligibility.',
-  collateral:'Family says last seen normal at 22:00 (~8.5 h ago by discovery). No anticoag. Independent baseline.',
-  ems_timeline:'EMS: discovery 06:30. No witness to onset.',
-  meds:'No anticoag. HTN, hyperlipidemia.',
+  nihss:'NIHSS 16. Mute (language 3), right hemianopia (vision 2), right facial droop (facial 2), right arm and leg plegia (arm 4, leg 4), forced left gaze (gaze 2).',
+  ncct:'CT head: no hemorrhage, no early ischemic changes. ASPECTS 10.',
+  cta:'CTA: left ICA terminus occlusion (a "T occlusion": both M1 and A1 origins involved).',
+  ctp:'CTP: large mismatch, modest core with very large penumbra.',
+  mri:'MRI DWI positive, FLAIR negative (mismatch present). Per WAKE-UP trial, this pattern can support IV tenecteplase in select wake-up cases. Institutional preference.',
+  collateral:'Family says last seen normal at 10 PM (about 8.5 hours by discovery). Independent baseline. No anticoag.',
+  ems_timeline:'Discovery at 6:30 AM. No witness to onset.',
+  meds:'No anticoagulation. Hypertension, hyperlipidemia.',
   baseline:'mRS 0. Lives alone, independent.',
-  seizure_hx:'No seizure history.',
+  seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No prior records.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'evt_only',
- reason:'mismatch',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
- do:'Wake-up LVO is an imaging-selection problem, not an automatic exclusion. CTP mismatch + L ICA terminus → EVT (Class 1 to 16 h, selected to 24 h). MRI DWI+/FLAIR- mismatch supports IVT in select wake-up cases (WAKE-UP trial). Institutional preference. institutional preference.',
- say:'This is not "outside the window" by default. For found-down LVO, the question is imaging eligibility, not whether the clock started while someone was watching.',
- teach:'Dominant hemispheric syndrome with contralateral hemianopia, aphasia, and dense hemiplegia fits a large left hemispheric ischemic event (L ICA terminus / "T occlusion"). Wake-up routes through imaging selection.',
- trap:'Equating wake-up stroke with ineligibility.',
- handoff:'~74yo wake-up stroke, found at 06:30, last seen well 22:00. Dominant cortical syndrome. mute, R hemianopia, dense R hemi, NIHSS 16. CTA L ICA terminus, CTP mismatch. Activating IR for EVT.',
- irCall:'Wake-up L ICA terminus (T) occlusion, NIHSS 16, CTP mismatch. NICU bed needed.'
+ syndromeStory:'Found down at 6:30 AM, last seen normal at 10 PM. She is mute, does not see anything to her right, and is not moving the right side. That is a dense left dominant hemispheric cortical syndrome. CTA showed a left ICA terminus (T) occlusion. Wake-up presentation is not an automatic exclusion: imaging selection drives eligibility. CTP mismatch makes her an EVT candidate, with selection out to 16 hours and in some cases 24 hours from last known well.',
+ teach:'Wake-up and unknown last known well stroke routes through imaging selection. CTP mismatch supports MT. DWI positive plus FLAIR negative supports IV tenecteplase per WAKE-UP. Discovery time is the upper bound, not the disqualifier.',
+ trap:'Calling a wake-up stroke "outside the window" before doing imaging selection.'
 },
 
 {id:'c3', n:3,
- arrival:'Aphasic, hemiplegic patient brought from bus stop. No ID, no phone. Bystander says "she just collapsed."',
+ arrival:'Adult brought in by EMS from a bus stop. Not talking. Right arm and leg are not moving. No ID, no phone, no family with her. A bystander says she just collapsed; he is not sure when.',
  unknowns:['identity','lkw','baseline','anticoag','seizure','collateral','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'dominant_mca',
  r:{
   glucose:'Glucose 102.',
   bp:'BP 162/86.',
-  nihss:'NIHSS 17. Forced L gaze, global aphasia, R hemianopia, R facial droop, R arm/leg plegia, R extinction.',
-  ncct:'CT head: no hemorrhage. ASPECTS 8.',
+  nihss:'NIHSS 17. Forced left gaze, global aphasia, right hemianopia, right facial droop, right arm and leg plegia.',
+  ncct:'CT head: no hemorrhage. ASPECTS 9 (subtle insular ribbon loss only, otherwise normal).',
   cta:'CTA: left M1 occlusion.',
-  ctp:'CTP: mismatch. small core, large penumbra.',
+  ctp:'CTP: mismatch, small core with large penumbra.',
   mri:'Not yet pursued.',
-  collateral:'Initially none. Family contacted at 60 min via phone unlock by police. LKW unclear, possibly 7 h ago, possibly less. Independent baseline.',
-  ems_timeline:'EMS arrived at scene 30 min ago. Bystander unsure of onset.',
+  collateral:'Initially none. Family reached at 60 minutes via phone unlock by police: family thinks last normal was around dinner, maybe 6 PM (uncertain). Independent baseline.',
+  ems_timeline:'EMS arrived on scene 30 minutes ago. Bystander unsure of onset.',
   meds:'Pharmacy: no DOAC fills locally.',
   baseline:'Family says mRS 1 (mild knee arthritis, ambulatory).',
   seizure_hx:'No known seizure history per family.',
   eeg:'Not indicated.',
-  osh:'No records found in 10 min.',
-  pharmacy:'No DOAC dispensed at any local pharmacy in last 6 mo.'
+  osh:'No records found in 10 minutes.',
+  pharmacy:'No DOAC dispensed at any local pharmacy in last 6 months.'
  },
- pathway:'evt_only',
- reason:'mismatch',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
- do:'Imaging can drive the code even with imperfect timeline. CTP mismatch + LVO + concordant syndrome → EVT pathway. If LKW were certain ≤4.5 h, TNK would also be reasonable. Discuss with attending given uncertain timeline.',
- say:'We don\'t have a perfect clock, but we have a culprit lesion and salvageable tissue. EVT is the answer. the timeline can be sorted in parallel.',
- teach:'Do not wait for perfect timeline if imaging can move the code. Document the uncertainty.',
- trap:'Thinking lack of collateral should halt stroke code progression.',
- handoff:'Unidentified ~60s with concordant L MCA syndrome. NIHSS 17. CTA L M1, ASPECTS 8, CTP mismatch. LKW uncertain (possibly 7 h). Going to EVT; TNK pending attending discussion.',
- irCall:'L M1 occlusion, NIHSS 17, CTP mismatch, unclear LKW (likely <24 h). Need IR.'
+ syndromeStory:'Found unresponsive at a bus stop with no ID, no phone, and no clear timeline. She has a left dominant hemispheric cortical syndrome (no speech, no movement on the right side). CTA showed a left M1 occlusion. CTP showed a mismatch. The right answer is to act on the syndrome and the imaging, not to wait for the clock to be perfect. Document the uncertainty and proceed.',
+ teach:'A concordant cortical syndrome plus a concordant LVO plus salvageable tissue on perfusion imaging drives reperfusion even with imperfect timeline.',
+ trap:'Halting the code while waiting for collateral history or a perfect last known well time.'
 },
 
 {id:'c4', n:4,
- arrival:'61yo woman, found by family with new L face/arm/leg weakness at 19:00. They report she was last normal at 08:00 same morning. Brought in 11 h after LKW.',
+ arrival:'61 year old woman. Family found her at 7 PM with the left side of her face drooping and the left arm and leg weak. She was last normal at 8 AM that morning. Eyes look pulled to the right, and she does not seem to notice things on the left.',
  unknowns:['baseline','anticoag','seizure','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'nondominant_mca',
  r:{
   glucose:'Glucose 138.',
   bp:'BP 170/92.',
-  nihss:'NIHSS 17. R gaze preference, L hemianopia, L facial droop, L arm plegia, L leg paresis, L hemisensory extinction, dysarthria.',
-  ncct:'CT head: subtle early ischemic changes in R MCA territory. ASPECTS 4.',
+  nihss:'NIHSS 17. Right gaze preference (gaze 2), left hemianopia (vision 2), left facial droop (facial 2), left arm plegia (arm 4), left leg paresis (leg 3), left hemisensory extinction (extinction 2), dysarthria (dys 2).',
+  ncct:'CT head: subtle early ischemic changes in right MCA territory (caudate, lentiform, insular ribbon, M1 cortex, M2 cortex affected). ASPECTS 4 because more than half of the MCA territory shows early ischemic change.',
   cta:'CTA: right M1 occlusion.',
   ctp:'CTP: established large core (matched) with limited penumbra. Some salvageable tissue still present.',
-  mri:'Not pursued. CTP adequate.',
-  collateral:'LKW 08:00. Independent baseline (mRS 1). No seizure hx. No anticoag.',
-  ems_timeline:'Family found her at 19:00 in unusual state.',
-  meds:'No anticoag. HTN, T2DM.',
+  mri:'Not pursued. CTP is adequate.',
+  collateral:'Last seen well at 8 AM (about 11 hours). Independent baseline (mRS 1). No seizure history. No anticoag.',
+  ems_timeline:'Family found her at 7 PM in unusual state.',
+  meds:'No anticoag. Hypertension, type 2 diabetes.',
   baseline:'mRS 1.',
   seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No prior records relevant.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'evt_only',
- reason:'mismatch',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
- do:'Large-core MT pathway: ASPECTS 3–5, age <80, NIHSS ≥6, ≤24 h → Class 1 (SELECT2, ANGEL-ASPECT, TESLA). Old "ASPECTS ≥6 only" rule is outdated. TNK is out of window (extended-window TNK is Class 2b only when MT is unavailable).',
- say:'Large core is not the blanket exclusion it used to be. The right M1 occlusion matches the right-hemisphere cortical syndrome, and this is now within evidence-based EVT practice for selected patients.',
- teach:'Large-core stroke is often still a thrombectomy discussion when the syndrome and vascular lesion are concordant. Selection by age + NIHSS + concordance.',
- trap:'Using outdated "ASPECTS 4 = no EVT" logic.',
- handoff:'61F, R MCA syndrome. gaze R, L hemianopia, dense L hemi, NIHSS 17. LKW 11 h. CTA R M1, ASPECTS 4, CTP mismatch present. Large-core MT pathway; paging IR to discuss MT.',
- irCall:'R M1 occlusion, NIHSS 17, ASPECTS 4, age 61, ~11 h LKW. Large-core MT candidate.'
+ syndromeStory:'Eleven hours from last known well. Right gaze deviation, left face/arm/leg weakness, and left-sided extinction. That pattern is a right nondominant hemispheric cortical syndrome. CTA confirmed a right M1 occlusion. ASPECTS is 4 because more than half of the MCA territory shows early ischemic change on CT head. Older logic would have called that too large for thrombectomy. Current evidence (SELECT2, ANGEL ASPECT, TESLA) supports thrombectomy in selected patients with ASPECTS 3 to 5, age under 80, and NIHSS at least 6. Tenecteplase at 11 hours is out of standard window.',
+ teach:'Large core thrombectomy is now Class 1 in selected patients (ASPECTS 3 to 5, age under 80, NIHSS at least 6, within 24 hours). Old "ASPECTS less than 6 means no MT" logic is outdated.',
+ trap:'Excluding from MT based on outdated ASPECTS logic.'
 },
 
 {id:'c5', n:5,
- arrival:'58yo man becomes somnolent at home. Family notes blown left pupil, ptosis, eye deviated down-and-out. Weak movement of right arm and leg.',
+ arrival:'58 year old man. About two hours ago he became suddenly sleepy at home. His family noticed his left eye is sitting down and out, the left pupil is big, and his eyelid is drooping. The right arm and leg are weak. His speech is slurred.',
  unknowns:['lkw','baseline','anticoag','seizure','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'posterior_brainstem',
  r:{
   glucose:'Glucose 112.',
   bp:'BP 150/85.',
-  nihss:'NIHSS 12. Decreased LOC (1a 2, 1b 2, 1c 2), L CN3 palsy (gaze 0 in NIHSS but exam shows L pupil dilated, ptosis, down-and-out gaze), R arm 2, R leg 2, dysarthria 2. No aphasia, no neglect.',
-  ncct:'CT head: no hemorrhage. Hyperdense basilar sign on artifact-free slice.',
+  nihss:'NIHSS 12. Decreased LOC (1a 2, 1b 2, 1c 2), left CN III findings (pupil dilated, ptosis, eye down and out), right arm and leg paresis (arm 2, leg 2), dysarthria 2. No aphasia, no neglect.',
+  ncct:'CT head: no hemorrhage. Hyperdense basilar sign suggested.',
   cta:'CTA: basilar tip occlusion.',
-  ctp:'CTP: limited utility for posterior circulation; reviewed regardless.',
+  ctp:'CTP: limited utility for posterior circulation but reviewed.',
   mri:'Not pursued. CTA diagnostic.',
-  collateral:'Wife says LKW 1.5 h ago. mRS 0, no seizure hx, no anticoag.',
-  ems_timeline:'EMS scene call 1 h ago.',
+  collateral:'Wife says last seen well 1.5 hours ago. mRS 0, no seizure history, no anticoag.',
+  ems_timeline:'EMS scene call 1 hour ago.',
   meds:'No anticoag.',
   baseline:'mRS 0.',
   seizure_hx:'No history.',
@@ -600,63 +559,55 @@ const CASES = [
   osh:'No prior strokes.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'tnk_evt',
- reason:'posterior_severity',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
- do:'Basilar pathway. NIHSS ≥10 + basilar occlusion + ≤24 h → MT Class 1 (BAOCHE, ATTENTION). Within standard 4.5 h window → TNK + page IR to discuss MT. Recognize Weber syndrome (ipsilateral CN3 + contralateral hemiparesis) as midbrain → basilar territory.',
- say:'This crossed exam localizes to the left midbrain. ipsilateral oculomotor palsy with contralateral hemiparesis, a Weber syndrome pattern. The basilar tip occlusion is the vascular emergency.',
- teach:'Localize the syndrome first, then connect it to an actionable posterior-circulation lesion. Anterior LVO scoring underscores posterior strokes. trust the syndrome, not the suspicion algorithm.',
- trap:'Calling it "just a brainstem stroke" and missing that it is a thrombectomy lesion. NIHSS underscores severity in posterior strokes.',
- handoff:'58M with sudden somnolence, L CN3 palsy, R hemiparesis. Weber syndrome localizing to L midbrain. NIHSS 12. CTA basilar tip occlusion, ~1.5 h LKW. TNK now, paging IR to discuss MT.',
- irCall:'Basilar tip occlusion, NIHSS 12, Weber pattern, within 4.5 h. TNK administered. Need IR.'
+ syndromeStory:'He became suddenly sleepy. The left pupil is blown, the eyelid droops, and the eye sits down and out. The right arm and leg are weak. That bedside pattern is an ipsilateral oculomotor (CN III) palsy plus contralateral hemiparesis, which localizes to the left midbrain. The classic name is Weber syndrome. CTA confirmed a basilar tip occlusion, the vascular emergency that explains the syndrome. Within 4.5 hours of onset, this is a reperfusion candidate: IV tenecteplase plus paging IR to discuss MT. Basilar thrombectomy is Class 1 within 24 hours when NIHSS is at least 10.',
+ teach:'Crossed signs (ipsilateral cranial nerve palsy plus contralateral hemiparesis) localize to the brainstem. Weber syndrome localizes to the midbrain and points to a posterior circulation thrombectomy lesion when CTA confirms basilar territory.',
+ trap:'Calling it "just a brainstem stroke" and missing that it is a thrombectomy lesion. NIHSS undercounts posterior strokes.'
 },
 
 {id:'c6', n:6,
- arrival:'62yo with sudden severe vertigo, vomiting, can\'t sit upright. Dysarthric. No clear focal weakness.',
+ arrival:'62 year old man, brought in 90 minutes after sudden severe spinning. He cannot sit upright, he is vomiting, and his speech is slurred. There is no obvious weakness on one side.',
  unknowns:['lkw','baseline','anticoag','seizure','glucose','bp','nihss','ncct','cta','ctp','mri'],
  syndrome:'cerebellar_vestibular',
  r:{
   glucose:'Glucose 95.',
   bp:'BP 158/88.',
   nihss:'NIHSS 4. Dysarthria 2, mild ataxia, decreased trunk control. No clear hemiparesis. HINTS exam concerning (skew deviation, direction-changing nystagmus).',
-  ncct:'CT head: no hemorrhage. Posterior fossa often artifact-degraded.',
+  ncct:'CT head: no hemorrhage. Posterior fossa imaging often degraded by artifact.',
   cta:'CTA: distal basilar narrowing with thrombus.',
   ctp:'CTP: limited posterior coverage.',
-  mri:'MRI DWI shows acute posterior circulation infarct (cerebellar + pontine).',
-  collateral:'Wife reports LKW 2 h ago. mRS 0, no seizure hx, no anticoag.',
-  ems_timeline:'EMS arrival 90 min after symptom onset.',
-  meds:'No anticoag. HTN.',
+  mri:'MRI DWI: acute posterior circulation infarcts (cerebellar plus pontine).',
+  collateral:'Wife reports last seen well 2 hours ago. mRS 0, no seizure history, no anticoag.',
+  ems_timeline:'EMS arrival 90 minutes after symptom onset.',
+  meds:'No anticoag. Hypertension.',
   baseline:'mRS 0.',
   seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No prior strokes.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'tnk_evt',
- reason:'posterior_severity',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','mri','collateral'],
- do:'Posterior circulation stroke is undercounted by NIHSS. the syndrome (vertigo + ataxia + dysarthria + concerning HINTS) overrides the score. CTA + MRI confirms basilar pathology. Within window → TNK + page IR to discuss MT discussion. Note: NIHSS <10 makes basilar EVT eligibility a discussion point. argue based on syndrome severity.',
- say:'Low NIHSS doesn\'t mean low acuity here. The syndrome. vertigo, ataxia, dysarthria, concerning HINTS. fits a basilar event, and the CTA confirms it. We treat the syndrome.',
- teach:'Posterior circulation strokes are systematically underscored by NIHSS. Vertigo + ataxia + dysarthria + concerning HINTS = stroke until proven otherwise. CTA + MRI is essential.',
- trap:'Sending the patient down the "vertigo / inner ear" pathway because NIHSS is low.',
- handoff:'62M with sudden vertigo, vomiting, ataxia, dysarthria. posterior circulation syndrome. NIHSS 4 but HINTS concerning. CTA distal basilar thrombus. ~2 h LKW. TNK now, paging IR to discuss MT for EVT discussion.',
- irCall:'Distal basilar thrombus, NIHSS 4 but high-stakes posterior syndrome, within 4.5 h. TNK given. Need IR consult.'
+ syndromeStory:'Sudden severe spinning, vomiting, slurred speech, and inability to sit up. The HINTS exam is concerning. NIHSS is misleadingly low at 4. The bedside pattern is a cerebellar/vestibular posterior circulation syndrome, and CTA confirmed a distal basilar thrombus. MRI showed acute infarcts in cerebellum and pons. We treat the syndrome, not the score. Within 4.5 hours, this is a reperfusion candidate: IV tenecteplase plus an IR conversation about MT. NIHSS less than 10 makes basilar MT a discussion point, but the syndrome severity argues for it.',
+ teach:'Posterior circulation strokes are routinely undercounted by NIHSS. Vertigo plus ataxia plus dysarthria plus concerning HINTS equals stroke until proven otherwise. CTA threshold should be low.',
+ trap:'Sending the patient down the vertigo or inner ear pathway because NIHSS is low.'
 },
 
 {id:'c7', n:7,
- arrival:'43yo right-handed dentist with subtle R arm pronator drift and inability to make a fist or perform finger taps. Face and leg normal. Says symptoms started 90 min ago after a meeting.',
+ arrival:'43 year old right-handed dentist. About 90 minutes ago, after a meeting, he noticed his right hand stopped working. He cannot make a fist or tap his fingers. The face and leg look fine.',
  unknowns:['baseline','anticoag','seizure','collateral','glucose','bp','ncct','cta','ctp','mri'],
  syndrome:'dominant_mca',
  r:{
   glucose:'Glucose 94.',
   bp:'BP 138/82.',
-  nihss:'NIHSS 1 (R arm 1). No facial droop, no leg weakness, no language deficit, no neglect.',
+  nihss:'NIHSS 1 (right arm 1). No facial droop, no leg weakness, no language deficit, no neglect.',
   ncct:'CT head: no hemorrhage, no early ischemic changes.',
   cta:'CTA: no LVO. Mild diffuse atherosclerotic disease, no acute occlusion.',
-  ctp:'CTP: not done. no LVO.',
-  mri:'MRI: small acute DWI lesion in left precentral hand-knob region.',
-  collateral:'Patient is the historian. Independent baseline, occupational dentist (uses dominant hand precisely).',
-  ems_timeline:'Patient self-presented to ED.',
+  ctp:'CTP: not done. No LVO suspected.',
+  mri:'MRI: small acute DWI lesion in left precentral hand knob region of motor cortex.',
+  collateral:'Patient is the historian. Independent baseline, working dentist (uses dominant hand precisely).',
+  ems_timeline:'Patient self presented to ED.',
   meds:'No anticoag. No regular meds.',
   baseline:'mRS 0. Active dentist.',
   seizure_hx:'No history.',
@@ -664,111 +615,95 @@ const CASES = [
   osh:'No prior records.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'tnk_only',
- reason:'disabling',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','mri','collateral'],
- do:'Hand-knob stroke causing a disabling deficit for a dentist. Low NIHSS but functionally devastating. 2026: thrombolyze any disabling deficit regardless of NIHSS. EVT not indicated (no LVO). DAPT can be discussed if patient prefers. but disabling-deficit logic argues for TNK.',
- say:'For this patient, isolated hand weakness is not minor. He cannot close the dominant hand. That is functionally disabling even if the NIHSS is 1.',
- teach:'Separate numerically mild from functionally mild. Always ask the occupation. DAPT can be discussed for borderline mild stroke (PRISMS NIHSS 0–5 nondisabling), but the disabling aspect of the syndrome drives management.',
- trap:'"NIHSS 1, so this is minor."',
- handoff:'43M dentist with sudden R hand weakness. cannot close dominant fist. NIHSS 1 but disabling. CTA negative for LVO, MRI confirms hand-knob infarct. ~90 min LKW. TNK now per disabling-deficit criteria.',
- irCall:'No LVO. IR not needed. Hand-knob stroke, disabling for occupation.'
+ syndromeStory:'He cannot make a fist or tap his fingers with the dominant hand, but the face and leg look fine. The MRI showed a small infarct in the hand area of the left motor cortex (the hand knob). NIHSS is 1, but for a working dentist this is functionally disabling. Current guidance supports IV tenecteplase for any disabling deficit regardless of NIHSS. DAPT (clopidogrel plus aspirin for 21 days, then aspirin alone, based on CHANCE and POINT) is reserved for nondisabling minor stroke (NIHSS 0 to 5) when reperfusion is not chosen, supported by PRISMS data. Here disability outweighs the NIHSS number, and tenecteplase is the right call.',
+ teach:'Disabling versus nondisabling drives reperfusion in mild stroke. DAPT (clopidogrel plus aspirin) is for nondisabling minor stroke (NIHSS 0 to 5), based on CHANCE and POINT. Thrombolyze any disabling deficit at any NIHSS. Always ask the occupation.',
+ trap:'Calling it minor stroke because NIHSS is 1.'
 },
 
 {id:'c8', n:8,
- arrival:'72yo with sudden global aphasia, L gaze preference, dense R hemiplegia, ~2 h from LKW. EMS reports BP 212/118 on multiple checks.',
+ arrival:'72 year old man. About 2 hours ago he suddenly stopped speaking, his eyes pulled to the left, and his right arm and leg stopped moving. EMS keeps getting blood pressures around 212/118.',
  unknowns:['baseline','anticoag','seizure','collateral','glucose','nihss','ncct','cta','ctp','mri'],
  syndrome:'dominant_mca',
  r:{
   glucose:'Glucose 132.',
-  bp:'BP 212/118 confirmed on bedside repeat. Two cycles labetalol underway.',
-  nihss:'NIHSS 18. LOC 1, gaze 2, hemianopia 2, R facial 2, R arm 4, R leg 4, language 3.',
-  ncct:'CT head: no hemorrhage. ASPECTS 8.',
+  bp:'BP 212/118 confirmed on bedside repeat. Two cycles of labetalol underway.',
+  nihss:'NIHSS 18. LOC 1, gaze 2, hemianopia 2, right facial 2, right arm 4, right leg 4, language 3.',
+  ncct:'CT head: no hemorrhage. ASPECTS 9 (subtle insular involvement only).',
   cta:'CTA: left M1 occlusion.',
   ctp:'CTP: mismatch.',
   mri:'Not needed.',
-  collateral:'Wife: LKW 2 h ago. mRS 0. HTN poorly controlled. No anticoag.',
-  ems_timeline:'EMS scene call 90 min ago.',
-  meds:'HTN, hyperlipidemia. No anticoag.',
+  collateral:'Wife: last seen well 2 hours ago. mRS 0. Hypertension poorly controlled. No anticoag.',
+  ems_timeline:'EMS scene call 90 minutes ago.',
+  meds:'Hypertension, hyperlipidemia. No anticoag.',
   baseline:'mRS 0.',
   seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No relevant prior records.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'bp_first',
- reason:'bp_threshold',
+ pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
- do:'BP must come below 185/110 before TNK; ≤180/105 for EVT. Bring it just below threshold. do not aggressively normalize. Pre-reperfusion BP lowering toward <140 may worsen outcome by reducing collateral perfusion. Start labetalol/nicardipine, recheck frequently, tell IR when crossing threshold, call NICU early.',
- say:'We should lower BP because he is over the reperfusion threshold, but only to the threshold. not aggressively below it. Before reperfusion, excessive lowering reduces collateral and penumbral perfusion. I want him just under 185/110 so we can proceed without delaying lytic/EVT. After successful reperfusion, do not push <140.',
- teach:'Two distinct BP concepts: (1) BEFORE reperfusion. lower only to eligibility threshold. (2) AFTER successful reperfusion. do NOT push SBP <140 (Class III, harm). Standard ceiling remains ≤180/105. The reflex from ICH does not apply post-reperfusion.',
- trap:'Trying to "normalize" BP before EVT, causing delay or hypoperfusion; then continuing the aggressive BP mindset post-reperfusion.',
- handoff:'72M with concordant L MCA syndrome. NIHSS 18. CTA L M1, ASPECTS 8, CTP mismatch. ~2 h LKW. BP 212/118, currently being titrated to just under 185/110 with labetalol. Will give TNK once at threshold and page IR to discuss MT. NICU bed needed.',
- irCall:'L M1 occlusion, NIHSS 18, ~2 h LKW. BP being controlled to threshold, then TNK + EVT. Standard post-EVT ceiling ≤180/105. do not crash below 140.'
+ syndromeStory:'Concordant left dominant hemispheric cortical syndrome with a concordant left M1 occlusion on CTA. The catch is BP 212/118. The job is to lower BP just enough to be eligible for reperfusion (under 185/110), not to normalize it. Aggressive BP lowering before reperfusion can reduce collateral perfusion and worsen outcome. After successful EVT, the standard ceiling stays at or under 180/105, and pushing SBP below 140 is harmful (Class III).',
+ teach:'Two distinct BP concepts. Before reperfusion: lower only enough to meet eligibility (under 185/110). After successful reperfusion: do NOT push SBP below 140 (Class III, harm). Standard ceiling stays at or under 180/105.',
+ trap:'Trying to normalize BP before EVT (delays reperfusion, hurts collaterals), then continuing aggressive lowering after EVT.'
 },
 
 {id:'c9', n:9,
- arrival:'66yo arrives 90 min after sudden severe headache, vomiting, and L hemiparesis. EMS reports BP 198/108 on multiple checks.',
+ arrival:'66 year old man. About 90 minutes ago he suddenly developed the worst headache of his life, vomited, and the left arm and leg went weak. EMS getting blood pressures around 198/108.',
  unknowns:['baseline','anticoag','seizure','collateral','glucose','nihss','cta','ctp','mri'],
  syndrome:'hemorrhage',
  r:{
   glucose:'Glucose 140.',
   bp:'BP 198/108 confirmed.',
-  nihss:'NIHSS 9. LOC 1, R facial 2, L arm 3, L leg 2, L sensory 1.',
-  ncct:'CT head: right basal ganglia ICH, ~25 mL, no IVH, mild mass effect.',
+  nihss:'NIHSS 9. LOC 1, right facial 2, left arm 3, left leg 2, left sensory 1.',
+  ncct:'CT head: right basal ganglia ICH, about 25 mL, no IVH, mild mass effect.',
   cta:'CTA: no spot sign, no underlying vascular lesion identified.',
   ctp:'CTP: not indicated.',
   mri:'Not indicated acutely.',
-  collateral:'Wife: LKW 90 min ago. HTN, no anticoag, mRS 0.',
-  ems_timeline:'EMS scene call 60 min ago.',
-  meds:'HTN. No anticoag.',
+  collateral:'Wife: last seen well 90 minutes ago. Hypertension, no anticoag, mRS 0.',
+  ems_timeline:'EMS scene call 60 minutes ago.',
+  meds:'Hypertension. No anticoag.',
   baseline:'mRS 0.',
   seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No relevant prior records.',
   pharmacy:'No DOAC or warfarin fills.'
  },
- pathway:'ich_pathway',
- reason:'hemorrhage',
+ pathway:'hemorrhage',
  ideal:['glucose','bp','nihss','ncct','collateral'],
- do:'CT head shows ICH → divert from reperfusion entirely. SBP target 130 to <140 with smooth, sustained control. Avoid SBP <130. If presenting >220, do not drop below 130, avoid large rapid swings. IV labetalol or nicardipine drip. No anticoag here, so no reversal needed. NSGY consult, NICU disposition.',
- say:'This is not "the lower the better." In ICH, the goal is controlled reduction toward 130 to <140 with a smooth curve and no overshoot below 130.',
- teach:'For ICH: fast enough, smooth enough, not too far. Different from generic hypertensive emergency. Reverse anticoagulation if applicable. NSGY for hematoma >30 mL or mass effect.',
- trap:'Treating the BP like a generic hypertensive emergency and overshooting below 130. Importing reperfusion BP logic onto ICH.',
- handoff:'66M with sudden HA, vomiting, L hemiparesis. R basal ganglia ICH 25 mL on CT head. NIHSS 9. BP 198/108, starting nicardipine to target SBP 130–140. No anticoag. NSGY consulted, NICU disposition.',
- irCall:'Not applicable for ICH. NSGY consult instead.'
+ syndromeStory:'Sudden worst headache of his life, vomiting, and left-sided weakness. CT head shows a right basal ganglia hemorrhage of about 25 mL. This is a hemorrhage pathway, not a reperfusion pathway. Current ICH BP guidance is smooth, sustained reduction of SBP to 130 to under 140, avoiding overshoot below 130. No anticoagulation history here, so no reversal is needed. NSGY consult, NICU disposition.',
+ teach:'For ICH: fast enough, smooth enough, not too far. SBP target 130 to under 140. Avoid overshoot below 130. Reverse anticoagulation if applicable. Hold all antithrombotics.',
+ trap:'Treating ICH BP like a generic hypertensive emergency and overshooting below 130. Importing reperfusion BP logic onto ICH.'
 },
 
 {id:'c10', n:10,
- arrival:'67yo with HTN, DM, smoking, prior TIA. Witnessed event at dinner: forced head turn to right, then rhythmic R face/arm jerking ~60–90 sec, postictal confusion. EMS finds him drowsy, dysarthric, R arm weak.',
+ arrival:'67 year old man with high blood pressure, diabetes, smoking, and prior TIA. At dinner he became unresponsive, his head turned forcefully to the right, and his right face and right arm started jerking rhythmically for about a minute. After it stopped, he was confused and breathing heavily. EMS finds him sleepy, slurred speech, weak in the right arm.',
  unknowns:['baseline','anticoag','collateral','glucose','bp','nihss','ncct','cta','mri','seizure'],
  syndrome:'mimic',
  r:{
   glucose:'Glucose 108.',
   bp:'BP 152/88.',
-  nihss:'NIHSS 3 on initial exam (LOC 1, R arm 1, dysarthria 1). Improving over 30–45 min.',
+  nihss:'NIHSS 3 on initial exam (LOC 1, right arm 1, dysarthria 1). Improving over 30 to 45 minutes.',
   ncct:'CT head: no hemorrhage. No acute findings.',
   cta:'CTA: no LVO. Mild atherosclerotic disease noted, no acute occlusion.',
-  ctp:'CTP: not done. no LVO suspected.',
+  ctp:'CTP: not done. No LVO suspected.',
   mri:'MRI: no acute infarct on DWI (if obtained).',
-  collateral:'Daughter: known epilepsy on lamotrigine, recently subtherapeutic. Last seizure 1 yr ago. mRS 1.',
-  ems_timeline:'EMS witnessed end of seizure activity at 30 min ago.',
-  meds:'Lamotrigine. No anticoag. HTN, DM.',
+  collateral:'Daughter: known epilepsy on lamotrigine, recently subtherapeutic. Last seizure 1 year ago. mRS 1.',
+  ems_timeline:'EMS witnessed end of seizure activity 30 minutes ago.',
+  meds:'Lamotrigine. No anticoag. Hypertension, diabetes.',
   baseline:'mRS 1.',
   seizure_hx:'Known epilepsy, recently subtherapeutic.',
   eeg:'Rapid EEG: no ongoing ictal activity, postictal slowing only.',
   osh:'No recent strokes documented.',
   pharmacy:'No DOAC fills.'
  },
- pathway:'mimic_pathway',
- reason:'mimic',
+ pathway:'mimic_unclear',
  ideal:['glucose','bp','nihss','ncct','collateral','seizure_hx','cta','eeg'],
- do:'Clues to Todd\'s paralysis: positive motor onset (versive head turn + clonic jerking), postictal confusion, progressive improvement, no LVO. Hold TNK pending imaging confirmation and trajectory observation. If suspicion for ongoing ictal activity or NCSE, rapid EEG. Treat the seizure trigger (subtherapeutic lamotrigine).',
- say:'The key clues are positive motor onset, versive head turn, postictal encephalopathy, and improving weakness. That sequence is much more typical of Todd\'s paralysis than a fixed ischemic deficit. We will image to be sure, but I would hold TNK if the deficit continues to improve and imaging is clean.',
- teach:'Stroke typically starts with a NEGATIVE symptom (sudden loss). Seizure starts with a POSITIVE symptom (positive motor activity), then leaves a transient negative deficit. Sequence matters at the bedside.',
- trap:'Letting vascular risk factors erase the seizure clues, or assuming seizure excludes stroke.',
- handoff:'67M with witnessed seizure (versive head turn, R-side clonic, postictal) and improving R arm weakness. NIHSS 3 and improving. CT head clean, CTA no LVO. Known epilepsy on subtherapeutic lamotrigine. Holding TNK. Treating as Todd\'s paralysis with seizure workup.',
- irCall:'Not applicable. no LVO. EEG and seizure management instead.'
+ syndromeStory:'He became unresponsive, his head turned forcefully to the right, and his right face and arm jerked for about a minute. He woke up confused. The right arm is weak but improving. The bedside sequence (forced head turn, positive motor activity, postictal confusion, improving deficit) fits Todd paralysis from a focal seizure. CTA showed no large vessel occlusion. Vascular risk factors do not erase the seizure clues. Hold thrombolysis pending observation; rapid EEG if any concern for ongoing ictal activity.',
+ teach:'Stroke usually starts with a NEGATIVE symptom (sudden loss). Seizure starts with POSITIVE motor activity and leaves a transient negative deficit. Sequence at the bedside is everything.',
+ trap:'Letting vascular risk factors erase the seizure clues, or assuming seizure excludes stroke.'
 }
 
 ];
@@ -1026,40 +961,11 @@ function renderPathwayPicker(){
       $$('.path-pick').forEach(x=>x.classList.remove('selected'));
       btn.classList.add('selected');
       S.pathwayChoice = p.id;
-      document.getElementById('reason-card').style.display = 'block';
-      renderReasonPicker();
-      updateEndButton();
+      $('#end-case').disabled = false;
       save();
     });
     root.appendChild(btn);
   });
-  if(S.pathwayChoice){
-    document.getElementById('reason-card').style.display = 'block';
-    renderReasonPicker();
-  }
-}
-
-function renderReasonPicker(){
-  const root = $('#reason-picker'); root.innerHTML = '';
-  REASONS.forEach(r=>{
-    const btn = document.createElement('button');
-    btn.className = 'pathway-btn reason-pick';
-    if(S.reasonChoice === r.id) btn.classList.add('selected');
-    btn.dataset.id = r.id;
-    btn.innerHTML = `<span class="path-title">${r.text}</span>`;
-    btn.addEventListener('click', ()=>{
-      $$('.reason-pick').forEach(x=>x.classList.remove('selected'));
-      btn.classList.add('selected');
-      S.reasonChoice = r.id;
-      updateEndButton();
-      save();
-    });
-    root.appendChild(btn);
-  });
-}
-
-function updateEndButton(){
-  $('#end-case').disabled = !(S.pathwayChoice && S.reasonChoice);
 }
 
 // ============================================================
@@ -1075,10 +981,9 @@ function endCase(){
   const idealMissed = c.ideal.filter(a => S.actionsTaken.indexOf(a) === -1);
   const pathOK = S.pathwayChoice === c.pathway;
 
-  const reasonOK = S.reasonChoice === c.reason;
-  // Score: 1 (syndrome) + idealHit + 2 (pathway) + 1 (reason)
-  const score = (synOK ? 1 : 0) + idealHit + (pathOK ? 2 : 0) + (reasonOK ? 1 : 0);
-  const total = 1 + idealTotal + 2 + 1;
+  // Score: 1 (syndrome) + idealHit + 2 (pathway)
+  const score = (synOK ? 1 : 0) + idealHit + (pathOK ? 2 : 0);
+  const total = 1 + idealTotal + 2;
   const elapsed = Math.round(S.timer.elapsed/1000);
 
   // Save to history
@@ -1092,10 +997,6 @@ function endCase(){
   const synChosenName = S.syndromeChoice ? SYNDROMES.find(s=>s.id===S.syndromeChoice).title : '-';
   const pathName = PATHWAYS.find(p=>p.id===c.pathway).title;
   const pathChosenName = S.pathwayChoice ? PATHWAYS.find(p=>p.id===S.pathwayChoice).title : '-';
-  const reasonObj = REASONS.find(r=>r.id===c.reason);
-  const reasonName = reasonObj ? reasonObj.text : '-';
-  const reasonChosenObj = S.reasonChoice ? REASONS.find(r=>r.id===S.reasonChoice) : null;
-  const reasonChosenText = reasonChosenObj ? reasonChosenObj.text : '-';
   const allActions = [].concat(ACTIONS.bedside, ACTIONS.history, ACTIONS.imaging, ACTIONS.other);
   const idealMissedLabels = idealMissed.map(aid => {
     const meta = allActions.find(a=>a.id===aid);
@@ -1117,10 +1018,6 @@ function endCase(){
     <span class="score-label">Pathway choice</span>
     <span class="score-value">${pathOK?'✓':'✗'} ${pathChosenName} ${pathOK?'':'(should have been '+pathName+')'}</span>
   </div>
-  <div class="score-row ${reasonOK?'correct':'wrong'}">
-    <span class="score-label">Reason</span>
-    <span class="score-value">${reasonOK?'✓':'✗'} ${reasonChosenText} ${reasonOK?'':'(should have been: '+reasonName+')'}</span>
-  </div>
   <div class="score-row">
     <span class="score-label">Total</span>
     <span class="score-value"><b>${score} / ${total}</b> &nbsp;•&nbsp; Time: ${Math.floor(elapsed/60)}m ${elapsed%60}s</span>
@@ -1132,29 +1029,17 @@ function endCase(){
   }
 
   html += `
-<div class="reveal-block">
-  <h5>1. What you do</h5>
-  <p>${c.do}</p>
+<div class="debrief-section" style="border-left:4px solid var(--brand);background:#faf7ff">
+  <h4 style="color:var(--brand-dark);margin-top:0">The case in one paragraph</h4>
+  <p style="font-size:14.5px;line-height:1.6">${c.syndromeStory}</p>
 </div>
 <div class="reveal-block">
-  <h5>2. What you say back when pushed</h5>
-  <div class="handoff-quote">${c.say}</div>
-</div>
-<div class="reveal-block">
-  <h5>3. Teaching point</h5>
+  <h5>Teaching point</h5>
   <p>${c.teach}</p>
 </div>
 <div class="reveal-block trap">
-  <h5>4. Trap to avoid</h5>
+  <h5>Trap to avoid</h5>
   <p>${c.trap}</p>
-</div>
-<div class="debrief-section">
-  <h4>Ideal attending one-liner</h4>
-  <div class="handoff-quote">${c.handoff}</div>
-</div>
-<div class="debrief-section">
-  <h4>Ideal IR / NICU call</h4>
-  <div class="handoff-quote">${c.irCall}</div>
 </div>`;
 
   $('#debrief-content').innerHTML = html;
