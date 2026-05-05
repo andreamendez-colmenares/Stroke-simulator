@@ -186,6 +186,17 @@ header h1{font-size:18px;font-weight:800}
 <button class="btn outline lg" id="review-cases">Review completed cases</button>
 </div>
 
+<div class="card" style="max-width:680px;margin:0 auto 18px;background:#faf7ff;border-color:#b39ddb">
+<h4 style="margin-top:0;color:var(--brand-dark)">How a case works</h4>
+<p style="font-size:13.5px;line-height:1.55;margin-bottom:6px">Each case runs in three phases of work, followed by a debrief:</p>
+<ol style="padding-left:22px;font-size:13.5px;line-height:1.6;margin-bottom:6px">
+<li><b>Recognize</b> the syndrome from the bedside picture before you order anything.</li>
+<li><b>Acquire</b> the data you need by clicking actions on the left. Data appears on the right and updates the Known / Unknown strip.</li>
+<li><b>Act</b> by picking the pathway that fits what you know.</li>
+</ol>
+<p style="font-size:13px;color:var(--muted);margin-bottom:0">The debrief at the end shows the case in one paragraph and teaching points</p>
+</div>
+
 <div id="case-picker-section" style="display:none">
 <h3>Pick a case</h3>
 
@@ -327,7 +338,7 @@ header h1{font-size:18px;font-weight:800}
 
 <footer style="text-align:center;padding:30px 12px 20px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);margin-top:40px;line-height:1.6">
   &copy; 2025 Andrea Mendez Colmenares &middot; Contact: <a href="mailto:asm147@duke.edu" style="color:var(--brand)">asm147@duke.edu</a><br>
-  Linked images are sourced from <a href="https://radiopaedia.org" target="_blank" rel="noopener" style="color:var(--brand)">Radiopaedia.org</a> and licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener" style="color:var(--brand)">CC BY-NC-SA 3.0</a>. This simulator is non-commercial educational use only.
+  Linked images are sourced from <a href="https://radiopaedia.org" target="_blank" rel="noopener" style="color:var(--brand)">Radiopaedia.org</a>. This simulator is for educational use only.
 </footer>
 </div>
 
@@ -360,8 +371,8 @@ const pad2=n=>String(n).padStart(2,'0');
 // Syndrome families
 // ============================================================
 const SYNDROMES = [
-  {id:'dominant_mca', title:'Dominant MCA cortical', desc:'Aphasia + R-sided weakness, R gaze deviation. L MCA territory.'},
-  {id:'nondominant_mca', title:'Nondominant MCA cortical', desc:'L hemineglect + L-sided weakness, L gaze deviation. R MCA territory.'},
+  {id:'dominant_mca', title:'Dominant (in most cases left hemisphere) MCA cortical', desc:'Aphasia + R-sided weakness, L gaze deviation. L MCA territory.'},
+  {id:'nondominant_mca', title:'Nondominant MCA cortical', desc:'L hemineglect + L-sided weakness, R gaze deviation (eyes look toward the lesion). R MCA territory.'},
   {id:'aca', title:'ACA syndrome', desc:'Contralateral leg > arm weakness, abulia, urinary incontinence. ACA territory.'},
   {id:'lacunar', title:'Lacunar / internal capsule', desc:'Pure motor or pure sensory, no cortical signs. Internal capsule, pons.'},
   {id:'thalamic', title:'Thalamic / sensory', desc:'Hemisensory loss, sensory neglect, decreased arousal. Thalamic territory.'},
@@ -433,8 +444,9 @@ const ACTION_UPDATES = {
 // ============================================================
 const PATHWAYS = [
   {id:'reperfusion', title:'Reperfusion candidate', desc:'Call attending. Acute ischemic stroke that may benefit from IV tenecteplase, mechanical thrombectomy, or both. Page IR to discuss MT if LVO present. Specifics depend on window, occlusion location, ASPECTS, and contraindications.'},
-  {id:'hemorrhage', title:'Hemorrhage pathway', desc:'Call attending. CT head shows hemorrhage. Stop reperfusion thinking. Lower SBP to 130 to under 140 smoothly, avoid overshoot below 130. Reverse anticoagulation if applicable. Page NSGY. NICU disposition.'},
-  {id:'mimic_unclear', title:'Mimic or unclear', desc:'Call attending. Stroke is not the working diagnosis or it is unclear. Treat the trigger (seizure, hypoglycemia). Hold reperfusion. Get rapid EEG if NCSE concern.'}
+  {id:'dapt', title:'DAPT (minor nondisabling stroke)', desc:'Call attending. Acute ischemic stroke suspected but the deficit is not disabling and NIHSS is 0 to 5. Start dual antiplatelet therapy (clopidogrel plus aspirin). No reperfusion. Full stroke workup still applies.'},
+  {id:'hemorrhage', title:'Hemorrhage pathway', desc:'Call attending. CT head shows hemorrhage. Stop reperfusion thinking. Lower SBP toward 130 to under 140 smoothly, avoid overshoot below 130. Reverse anticoagulation if applicable. Page NSGY. NICU disposition.'},
+  {id:'mimic_unclear', title:'Mimic or unclear', desc:'Call attending. Stroke is not the working diagnosis or it is unclear. Treat the trigger (seizure, hypoglycemia, etc.) when there is one. In some mimics there is no specific stroke intervention, only observation and workup of the underlying cause. Rapid EEG if NCSE concern.'}
 ];
 
 // ============================================================
@@ -481,12 +493,19 @@ const CASES = [
   seizure_hx:'No seizure history.',
   eeg:'Not indicated for this presentation.',
   osh:'No outside hospital records.',
-  pharmacy:'No DOAC fills on record.'
+  pharmacy:'Preparing TNK if needed.'
  },
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
  syndromeStory:'This patient suddenly stopped talking, kept staring to the left, and lost movement of the right arm and leg. That bedside pattern is a left dominant hemispheric cortical syndrome, classic for a left middle cerebral artery (M1) occlusion. On the very first non-contrast CT head, the L M1 may already show a <b>hyperdense MCA sign</b>, a bright linear thrombus visible before any contrast is given (the bright structure in the L Sylvian fissure on the Radiopaedia example). Recognizing it can drive immediate IV tenecteplase even before CTA confirms the occlusion. CTA then confirmed the L M1 occlusion, matching the syndrome. Within 90 minutes of onset, this is a reperfusion candidate: IV tenecteplase plus paging IR to discuss MT in parallel.',
- teach:'Sudden aphasia plus forced gaze deviation plus contralateral hemiplegia points to a dominant hemispheric LVO until proven otherwise. Concordant cortical syndrome plus concordant LVO drives immediate reperfusion. TNK and MT pathways run in parallel, not in sequence.',
+ teach:[
+   'Recognize dominant hemispheric cortical dysfunction at the bedside: aphasia, forced gaze deviation toward the lesion, and dense contralateral face-arm-leg weakness point to a proximal anterior-circulation LVO until proven otherwise.',
+   'Inspect the noncontrast CT before CTA finishes. Compare both MCAs and both Sylvian fissures; a hyperdense MCA sign can support immediate reperfusion thinking even before vascular imaging returns.',
+   'Run IV thrombolysis and EVT workflows in parallel. Do not wait to see whether the lytic works before activating thrombectomy.',
+   'The 2026 AHA/ASA AIS guideline endorses either alteplase or tenecteplase within 4.5 hours; tenecteplase often simplifies workflow because it is a single bolus rather than a 60-minute infusion.',
+   'Bridging thrombolysis still matters in eligible LVO. In BRIDGE-TNK, 90-day functional independence was 53% with tenecteplase plus thrombectomy vs 44% with thrombectomy alone, with similar safety.'
+ ],
+ citations:['2026 AHA/ASA Acute Ischemic Stroke Guideline', '2025 TNKase FDA label', 'BRIDGE-TNK trial'],
  trap:'Delaying reperfusion because the patient identity is not yet known. Identity sorting can happen in parallel.'
 },
 
@@ -509,12 +528,19 @@ const CASES = [
   seizure_hx:'No history.',
   eeg:'Not indicated.',
   osh:'No prior records.',
-  pharmacy:'No DOAC fills.'
+  pharmacy:'Preparing TNK if needed.'
  },
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
- syndromeStory:'Found down at 6:30 AM, last seen normal at 10 PM. She is mute, does not see anything to her right, and is not moving the right side. That is a dense left dominant hemispheric cortical syndrome. CTA showed a left ICA terminus (T) occlusion. Wake-up presentation is not an automatic exclusion: imaging selection drives eligibility. CTP mismatch makes her an EVT candidate, with selection out to 16 hours and in some cases 24 hours from last known well.',
- teach:'Wake-up and unknown last known well stroke routes through imaging selection. CTP mismatch supports MT. DWI positive plus FLAIR negative supports IV tenecteplase per WAKE-UP. Discovery time is the upper bound, not the disqualifier.',
+ syndromeStory:'Found down at 6:30 AM, last seen normal at 10 PM. She is mute, is not blinking to threat on her right, and is not moving the right side. That is a dense left dominant hemispheric cortical syndrome. CTA showed a left ICA terminus (T) occlusion. Wake-up presentation is not an automatic exclusion: imaging selection drives eligibility. CTP mismatch makes her an EVT candidate, with selection out to 16 hours and in some cases 24 hours from last known well.',
+ teach:[
+   'Recognize a wake-up stroke as an imaging-selection problem, not an automatic exclusion.',
+   'Localize first, then let imaging decide treatment. Dense aphasia, hemianopia, gaze deviation, and hemiplegia still point to a left hemispheric LVO even when onset is unknown. When onset is unknown or unconfirmed, treat the case as a wake-up stroke.',
+   'Separate discovery time from tissue status. Discovery at 6:30 AM does not tell you whether salvageable penumbra remains.',
+   'Use MRI DWI-FLAIR mismatch or CT/MR perfusion mismatch to decide whether reperfusion still makes sense. In WAKE-UP, alteplase improved favorable 90-day outcome (mRS 0 to 1 in 53.3% vs 41.8% with placebo) in DWI-positive / FLAIR-negative patients.',
+   'The clinical trials DAWN and DEFUSE 3 established EVT benefit in selected anterior-circulation LVO up to 24 hours from last known well, it depends on whether there is salvageable tissue on imaging.'
+ ],
+ citations:['WAKE-UP trial', 'DAWN trial', 'DEFUSE 3 trial', '2026 AHA/ASA AIS Guideline'],
  trap:'Calling a wake-up stroke "outside the window" before doing imaging selection.'
 },
 
@@ -537,12 +563,17 @@ const CASES = [
   seizure_hx:'No known seizure history per family.',
   eeg:'Not indicated.',
   osh:'No records found in 10 minutes.',
-  pharmacy:'No DOAC dispensed at any local pharmacy in last 6 months.'
+  pharmacy:'Preparing TNK if needed.'
  },
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
  syndromeStory:'Found unresponsive at a bus stop with no ID, no phone, and no clear timeline. She has a left dominant hemispheric cortical syndrome (no speech, no movement on the right side). CTA showed a left M1 occlusion. CTP showed a mismatch. The right answer is to act on the syndrome and the imaging, not to wait for the clock to be perfect. Document the uncertainty and proceed.',
- teach:'A concordant cortical syndrome plus a concordant LVO plus salvageable tissue on perfusion imaging drives reperfusion even with imperfect timeline.',
+ teach:[
+   'Act on concordance: dense dominant-hemisphere syndrome, proximal occlusion on CTA, and favorable perfusion mismatch together support thrombectomy even when collateral history is incomplete.',
+   'The 2026 AHA/ASA AIS guideline emphasizes streamlined imaging and systems-of-care so treatment is not delayed, even when you do not have all the information about a patient.',
+   'Reinforce late-window thrombectomy selection: in selected patients with favorable imaging, EVT remains indicated up to 16 hours and reasonable up to 24 hours from last known well based on DAWN and DEFUSE 3 paradigms.'
+ ],
+ citations:['DAWN trial', 'DEFUSE 3 trial', '2026 AHA/ASA AIS Guideline'],
  trap:'Halting the code while waiting for collateral history or a perfect last known well time.'
 },
 
@@ -570,7 +601,14 @@ const CASES = [
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','ctp','collateral'],
  syndromeStory:'Eleven hours from last known well. Right gaze deviation, left face/arm/leg weakness, and left-sided extinction. That pattern is a right nondominant hemispheric cortical syndrome. CTA confirmed a right M1 occlusion. ASPECTS is 4 because more than half of the MCA territory shows early ischemic change on CT head. Older logic would have called that too large for thrombectomy. Current evidence (SELECT2, ANGEL ASPECT, TESLA) supports thrombectomy in selected patients with ASPECTS 3 to 5, age under 80, and NIHSS at least 6. Tenecteplase at 11 hours is out of standard window.',
- teach:'Large core thrombectomy is now Class 1 in selected patients (ASPECTS 3 to 5, age under 80, NIHSS at least 6, within 24 hours). Old "ASPECTS less than 6 means no MT" logic is outdated.',
+ teach:[
+   'Recognize nondominant MCA cortex from the exam: gaze preference toward the lesion (right gaze), contralateral hemiparesis, hemianopia, and extinction or neglect are cortical findings, not a lacunar pattern.',
+   'Score ASPECTS carefully but not fatalistically. Low ASPECTS predicts worse absolute prognosis, but it does not prove futility.',
+   'A large core on CTP does not necessarily exclude someone from thrombectomy. Discuss with neuro-IR and your attending/fellow.',
+   'Pooled lesson: a meta-analysis of six randomized large-core trials found better 90-day mRS (generalized OR 1.6) and more independent ambulation (RR 1.9), with higher symptomatic ICH (RR 1.7).',
+   'Update the framing: the 2026 AHA/ASA AIS guideline expands EVT to selected patients with large-core infarction. Standard CT/ASPECTS can be used when perfusion imaging is unavailable.'
+ ],
+ citations:['SELECT2 trial', 'LASTE trial', 'Large-core RCT meta-analysis', '2026 AHA/ASA AIS Guideline'],
  trap:'Excluding from MT based on outdated ASPECTS logic.'
 },
 
@@ -598,8 +636,15 @@ const CASES = [
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
  syndromeStory:'He became suddenly sleepy. The left pupil is blown, the eyelid droops, and the eye sits down and out. The right arm and leg are weak. That bedside pattern is an ipsilateral oculomotor (CN III) palsy plus contralateral hemiparesis, which localizes to the left midbrain. The classic name is Weber syndrome. CTA confirmed a basilar tip occlusion, the vascular emergency that explains the syndrome. Within 4.5 hours of onset, this is a reperfusion candidate: IV tenecteplase plus paging IR to discuss MT. Basilar thrombectomy is Class 1 within 24 hours when NIHSS is at least 10.',
- teach:'Crossed signs (ipsilateral cranial nerve palsy plus contralateral hemiparesis) localize to the brainstem. Weber syndrome localizes to the midbrain and points to a posterior circulation thrombectomy lesion when CTA confirms basilar territory.',
- trap:'Calling it "just a brainstem stroke" and missing that it is a thrombectomy lesion. NIHSS undercounts posterior strokes.'
+ teach:[
+   'Perform a cranial nerve exam immediately in suspected posterior-circulation stroke. The NIHSS does not adequately capture brainstem signs, and CN findings are often the localization clue that changes management.',
+   'Recognize crossed brainstem findings: ipsilateral CN III palsy with contralateral hemiparesis localizes to the midbrain and should trigger urgent posterior-circulation vascular imaging.',
+   'A brainstem localization can still represent a basilar thrombectomy lesion.',
+   'Use the basilar EVT trial numbers. In ATTENTION, mRS 0 to 3 at 90 days occurred in 46% vs 23% with EVT vs medical therapy, and mortality was 37% vs 55%. In BAOCHE, mRS 0 to 3 was 46% vs 24% in the 6 to 24 hour window.',
+   'The 2026 AHA/ASA AIS guideline broadens EVT eligibility to include selected posterior-circulation occlusions.'
+ ],
+ citations:['ATTENTION trial', 'BAOCHE trial', '2026 AHA/ASA AIS Guideline'],
+ trap:'Calling it "just a brainstem stroke" and missing that it could be a thrombectomy lesion. NIHSS undercounts posterior strokes.'
 },
 
 {id:'c6', n:6,
@@ -626,7 +671,16 @@ const CASES = [
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','mri','collateral'],
  syndromeStory:'Sudden severe spinning, vomiting, slurred speech, and inability to sit up. The HINTS exam is concerning. NIHSS is misleadingly low at 4. The bedside pattern is a cerebellar/vestibular posterior circulation syndrome, and CTA confirmed a distal basilar thrombus. MRI showed acute infarcts in cerebellum and pons. We treat the syndrome, not the score. Within 4.5 hours, this is a reperfusion candidate: IV tenecteplase plus an IR conversation about MT. NIHSS less than 10 makes basilar MT a discussion point, but the syndrome severity argues for it.',
- teach:'Posterior circulation strokes are routinely undercounted by NIHSS. Vertigo plus ataxia plus dysarthria plus concerning HINTS equals stroke until proven otherwise. CTA threshold should be low.',
+ teach:[
+   'Take the acute vestibular syndrome seriously. Do not call this peripheral vertigo until you have actively tried to prove it is peripheral.',
+   'Use the HINTS exam when the patient has continuous acute vestibular syndrome with spontaneous nystagmus. A dangerous HINTS pattern can reveal central pathology even when early posterior fossa CT is unrevealing.',
+   'Remember the HINTS exam: a normal head impulse, direction-changing nystagmus, or skew deviation points to a central lesion. In this case, the skew deviation and direction-changing nystagmus are the red flags.',
+   'Cranial nerve and oculomotor findings are not fully represented in the NIHSS.',
+   'Pair syndrome recognition with vessel imaging. Sudden inability to sit upright, vomiting, dysarthria, severe truncal ataxia, and dangerous HINTS findings justify a low CTA threshold for posterior circulation stroke.',
+   'Use posterior EVT data to reinforce why this matters: in ATTENTION and BAOCHE, favorable outcome rates were about 46% vs 24% with EVT vs medical therapy in basilar occlusion.',
+   'Selected posterior-circulation thrombectomy is now part of the modern stroke treatment framework.'
+ ],
+ citations:['ATTENTION trial', 'BAOCHE trial', '2026 AHA/ASA AIS Guideline'],
  trap:'Sending the patient down the vertigo or inner ear pathway because NIHSS is low.'
 },
 
@@ -654,7 +708,15 @@ const CASES = [
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','mri','collateral'],
  syndromeStory:'He cannot make a fist or tap his fingers with the dominant hand, but the face and leg look fine. The MRI showed a small infarct in the hand area of the left motor cortex (the hand knob). NIHSS is 1. Ask him directly: "Do you consider this deficit disabling to you?" He says yes. Patient self-assessment of disability is what drives the decision in mild stroke, more than the NIHSS number or even the occupation alone. Current guidance supports IV tenecteplase for any disabling deficit regardless of NIHSS. DAPT (clopidogrel plus aspirin for 21 days, then aspirin alone, based on CHANCE and POINT) is reserved for nondisabling minor stroke (NIHSS 0 to 5) when reperfusion is not chosen, supported by PRISMS data.',
- teach:'Disabling versus nondisabling drives reperfusion in mild stroke. The key question is to ask the PATIENT whether THEY consider this deficit disabling to them. DAPT (clopidogrel plus aspirin) is for nondisabling minor stroke (NIHSS 0 to 5), based on CHANCE and POINT. Thrombolyze any disabling deficit at any NIHSS.',
+ teach:[
+   'Recognize that isolated hand weakness can be cortical stroke, especially when fine finger movements fail disproportionately.',
+   'Ask the patient directly whether the deficit is disabling to them to further decide on treatment.',
+   'Separate minor disabling from minor nondisabling stroke; that distinction changes treatment more than the raw NIHSS number.',
+   'For minor nondisabling stroke, it is reasonable to consider DAPT instead of TNK. In ARAMIS, DAPT was noninferior to alteplase for excellent 90-day outcome (93.8% vs 91.4%) in minor nondisabling stroke. Ultimately discuss tenecteplase vs DAPT with the patient.',
+   'For recurrent prevention after minor stroke or high-risk TIA, short-course DAPT lowers recurrent ischemic stroke risk (pooled RR 0.68 vs single antiplatelet therapy).',
+   'The evidence for thrombolysis in minor disabling stroke is less settled than it once seemed; always discuss with your attending/fellow.'
+ ],
+ citations:['ARAMIS trial', 'AHA DAPT evidence review', 'INSPIRES trial', 'TEMPO-2 trial'],
  trap:'Calling it minor stroke and not treating because NIHSS is 1.'
 },
 
@@ -682,7 +744,14 @@ const CASES = [
  pathway:'reperfusion',
  ideal:['glucose','bp','nihss','ncct','cta','collateral'],
  syndromeStory:'Concordant left dominant hemispheric cortical syndrome with a concordant left M1 occlusion on CTA. The catch is BP 212/118. The job is to lower BP just enough to be eligible for reperfusion (under 185/110), not to normalize it. Aggressive BP lowering before reperfusion can reduce collateral perfusion and worsen outcome. After successful EVT, the standard ceiling stays at or under 180/105, and pushing SBP below 140 is harmful (Class III).',
- teach:'Two distinct BP concepts. Before reperfusion: lower only enough to meet eligibility (under 185/110). After successful reperfusion: do NOT push SBP below 140 (Class III, harm). Standard ceiling stays at or under 180/105.',
+ teach:[
+   'BEFORE IV thrombolysis, lower BP just enough to reach eligibility (under 185/110). AFTER IV thrombolysis or EVT, keep BP under 180/105 for 24 hours.',
+   'Do not try to normalize BP before reperfusion. Excessive early reduction can compromise collateral flow.',
+   'BP after EVT: current evidence supports avoiding active reduction into the under 130 to 140 range early after successful MT.',
+   'For a stroke that does not undergo reperfusion therapy, do not routinely lower BP unless it is roughly at or above 220/120, and then reduce only modestly (about 15% in 24 hours).',
+   'After EVT, the patient gets BP management in the neuro-ICU.'
+ ],
+ citations:['2026 AHA/ASA AIS Guideline', 'Acute stroke BP comparative review (2025/2026)', 'ESO blood pressure guideline for AIS / MT'],
  trap:'Trying to normalize BP before EVT (delays reperfusion, hurts collaterals), then continuing aggressive lowering after EVT.'
 },
 
@@ -710,7 +779,13 @@ const CASES = [
  pathway:'hemorrhage',
  ideal:['glucose','bp','nihss','ncct','collateral'],
  syndromeStory:'Sudden worst headache of his life, vomiting, and left-sided weakness. CT head shows a right basal ganglia hemorrhage of about 25 mL. This is a hemorrhage pathway, not a reperfusion pathway. Current ICH BP guidance is smooth, sustained reduction of SBP to 130 to under 140, avoiding overshoot below 130. No anticoagulation history here, so no reversal is needed. NSGY consult, NICU disposition.',
- teach:'For ICH: fast enough, smooth enough, not too far. SBP target 130 to under 140. Avoid overshoot below 130. Reverse anticoagulation if applicable. Hold all antithrombotics.',
+ teach:[
+   'Recognize the switch point immediately: headache, vomiting, focal deficit, and ICH on CT means hemorrhage pathway, not reperfusion pathway.',
+   'Aim for rapid, smooth, sustained BP control rather than dramatic swings.',
+   'In spontaneous ICH with presenting SBP 150 to 220, lower toward about 140, but avoid overshoot below about 130 and avoid large variability.',
+   'Caveat for very high presenting SBP: in ATACH-2 patients with initial SBP at or above 220, intensive lowering was associated with more neurologic deterioration and more kidney injury. Avoid aggresively lowering the pressure down.'
+ ],
+ citations:['INTERACT2 trial', 'ATACH-2 trial', 'ATACH-2 subgroup analysis (SBP ≥ 220)', 'Acute stroke BP comparative review (2025/2026)'],
  trap:'Treating ICH BP like a generic hypertensive emergency and overshooting below 130. Importing reperfusion BP logic onto ICH.'
 },
 
@@ -738,7 +813,13 @@ const CASES = [
  pathway:'mimic_unclear',
  ideal:['glucose','bp','nihss','ncct','collateral','seizure_hx','cta','eeg'],
  syndromeStory:'He became unresponsive, his head turned forcefully to the right, and his right face and arm jerked for about a minute. He woke up confused. The right arm is weak but improving. The bedside sequence (forced head turn, positive motor activity, postictal confusion, improving deficit) fits Todd paralysis from a focal seizure. CTA showed no large vessel occlusion. Vascular risk factors do not erase the seizure clues. Hold thrombolysis pending observation; rapid EEG if any concern for ongoing ictal activity.',
- teach:'Stroke usually starts with a NEGATIVE symptom (sudden loss). Seizure starts with POSITIVE motor activity and leaves a transient negative deficit. Sequence at the bedside is everything.',
+ teach:[
+   'Reconstruct the sequence of symptoms. In stroke, symptoms usually begin with a NEGATIVE deficit (sudden loss of function). In seizure, symptoms often begin with POSITIVE motor activity and then leave a transient negative deficit.',
+   'Why the gaze direction differs in a seizure: in stroke, the damaged hemisphere cannot drive the eyes anymore, so the working hemisphere wins and the eyes are PULLED TOWARD the lesion. In seizure, the active electrical firing PUSHES the eyes AWAY from the focus, toward the symptomatic side. So a left frontal seizure causes the head and eyes to turn forcefully to the right, exactly what you see here.',
+   'Ask specifically about head version, eye deviation, rhythmic jerking, postictal confusion, and gradual improvement. Those details discriminate Todd paralysis from stroke better than vascular risk factors do.',
+   'Do not make the opposite mistake either: seizure at onset does not exclude stroke. Use CT and CTA to rule out hemorrhage and LVO, and use EEG when persistent altered mentation raises concern for ongoing ictal activity.'
+ ],
+ citations:['2026 AHA/ASA AIS Guideline'],
  trap:'Letting vascular risk factors erase the seizure clues, or assuming seizure excludes stroke.'
 }
 
@@ -1081,19 +1162,26 @@ function endCase(){
     html += `<div class="debrief-section"><h4>Missed acquisitions</h4><p>You did not request: <b>${idealMissedLabels.join(', ')}</b>. These would have informed your decision.</p></div>`;
   }
 
+  // Teach can be string or array of bullet points
+  const teachHTML = Array.isArray(c.teach)
+    ? '<ul style="margin:0;padding-left:20px">' + c.teach.map(t => '<li style="margin-bottom:6px;font-size:13.5px;line-height:1.5">'+t+'</li>').join('') + '</ul>'
+    : '<p>'+c.teach+'</p>';
+  const citationsHTML = (c.citations && c.citations.length)
+    ? '<div class="reveal-block" style="background:#f5f5f5;border-left-color:#888"><h5>References</h5><ul style="margin:0;padding-left:20px">' + c.citations.map(r => '<li style="margin-bottom:3px;font-size:12.5px;color:#444">'+r+'</li>').join('') + '</ul></div>'
+    : '';
   html += `
 <div class="debrief-section" style="border-left:4px solid var(--brand);background:#faf7ff">
   <h4 style="color:var(--brand-dark);margin-top:0">The case in one paragraph</h4>
   <p style="font-size:14.5px;line-height:1.6">${c.syndromeStory}</p>
 </div>
 <div class="reveal-block">
-  <h5>Teaching point</h5>
-  <p>${c.teach}</p>
+  <h5>Teaching points</h5>
+  ${teachHTML}
 </div>
 <div class="reveal-block trap">
   <h5>Trap to avoid</h5>
   <p>${c.trap}</p>
-</div>`;
+</div>${citationsHTML}`;
 
   $('#debrief-content').innerHTML = html;
   showPhase('debrief');
